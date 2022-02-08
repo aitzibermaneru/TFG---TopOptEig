@@ -16,7 +16,7 @@ classdef Preprocess < handle
     methods (Access = public)
 
         function obj = Preprocess (cParams)
-                obj.init(cParams);
+            obj.init(cParams);
         end
 
         function obj = compute(obj)
