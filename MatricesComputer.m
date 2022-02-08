@@ -46,17 +46,42 @@ classdef MatricesComputer < handle
         end
 
         function Ke = computeElementalStiffnessMatrix(obj,l)
-            Ke = 1/(30*l)*[36 3*l -36 3*l; 
-                3*l 4*l^2 -3*l -l^2; 
-                -36 -3*l 36 -3*l; 
-                3*l -l^2 -3*l 4*l^2];
+            [c1,c2,c3,c4,c5] = obj.coeffsStiffness(l);
+            Ke(1,1:4) = c1*[c2 c3 -c2 c3];
+            Ke(2,1:4) = c1*[c3 c4 -c3 -c5];
+            Ke(3,1:4) = c1*[-c2 -c3 c2 -c3];
+            Ke(4,1:4) = c1*[c3 -c5 -c3 c4];
+%           Ke = 1/(30*l)*[36 3*l -36 3*l; 
+%                 3*l 4*l^2 -3*l -l^2; 
+%                 -36 -3*l 36 -3*l; 
+%                 3*l -l^2 -3*l 4*l^2];
+        end
+
+        function [c1,c2,c3,c4,c5] = coeffsStiffness(obj,l)
+            c1 = 1/(30*l);
+            c2 = 36;
+            c3 = 3*l;
+            c4 = 4*l^2;
+            c5 = l^2;
         end
 
         function Be = computeElementalBendingMatrix(obj,l,E,I)
-            Be = (E*I/(l^3))*[12 6*l -12 6*l;  
-                6*l 4*l^2 -6*l 2*l^2; 
-                -12 -6*l 12 -6*l; 
-                6*l 2*l^2 -6*l 4*l^2]; 
+            [c1,c2,c3,c4] = obj.coeffsBending(l,E,I);
+            Be(1,1:4) = c1*[c2 c3 -c2 c3];
+            Be(2,1:4) = c1*[c3 c4 -c3 c4/2];
+            Be(3,1:4) = c1*[-c2 -c3 c2 -c3];
+            Be(4,1:4) = c1*[c3 c4/2 -c3 c4];
+%             Be = (E*I/(l^3))*[12 6*l -12 6*l;  
+%                 6*l 4*l^2 -6*l 2*l^2; 
+%                 -12 -6*l 12 -6*l; 
+%                 6*l 2*l^2 -6*l 4*l^2]; 
+        end
+
+        function [c1,c2,c3,c4] = coeffsBending(obj,l,E,I)
+            c1 = E*I/l^3;
+            c2 = 12;
+            c3 = 6*l;
+            c4 = 4*l^2;
         end
 
         function computeGlobalMatrices(obj)
@@ -71,10 +96,9 @@ classdef MatricesComputer < handle
                 B(idof,idof)=B(idof,idof)+(x(iElem)^2)*Be;
                 K(idof,idof)=K(idof,idof)+ Ke;
             end
-            obj.stiffnessMatrix = B;
-            obj.bendingMatrix = K;
+            obj.stiffnessMatrix = K;
+            obj.bendingMatrix = B;
         end
-
 
     end
 end
