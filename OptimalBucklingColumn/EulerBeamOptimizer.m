@@ -1,7 +1,7 @@
 classdef EulerBeamOptimizer < handle
     
-    properties (Access = private)
-        
+    properties (Access = protected)
+        optimizerType
     end
     
     properties (Access = private)
@@ -12,7 +12,6 @@ classdef EulerBeamOptimizer < handle
         inertiaMoment
         minThick
         maxThick
-        optimizerType
     end
     
     methods (Access = public)
@@ -110,8 +109,7 @@ classdef EulerBeamOptimizer < handle
             E2=zeros(loop);
             % ELEMENTAL MATRICES
             Be = obj.computeElementalBendingMatrix();
-            Ke = obj.computeElementalStiffnessMatrix();
-            
+            Ke = obj.computeElementalStiffnessMatrix();    
             % ITERATIVE PROCESS
             change = 1;
             while (change > 0.0005) & (loop < 1000)
@@ -123,45 +121,8 @@ classdef EulerBeamOptimizer < handle
                 [~,~,freenodes] = obj.computeBoundaryConditions();
                 % EIGENVALUES AND EIGENVECTORS
                 [V,D,v1,v2,lambda] = obj.computeEigenModesAndValues(freenodes,K,B);
-
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                %__________________MMA____________________
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                % todo esto lo calcula la clase hija, hay que llamarla
-                % desde aqui.
-
-                %% necesita todo esto 
-
-%             s.type = obj.optimizerType;
-%             s.designVariable = x;
-%             obj.constraintCase    = cParams.constraintCase;
-%             obj.cost              = cParams.cost;
-%             obj.constraint        = cParams.constraint;
-%             obj.designVariable    = cParams.designVar;
-%             obj.dualVariable      = cParams.dualVariable;
-%             obj.maxIter           = cParams.maxIter;
-%             obj.incrementalScheme = cParams.incrementalScheme;
-%             obj.targetParameters  = cParams.targetParameters;
-
-%             s.type = obj.optimizerType;
-                %%
- 
-
-             
-                % UPDATING OF THE SOLUTION
-                xval = x; % design variable -----> será el input al optimizier_MMA
-                % OBJECTIVE FUNCTION
-                [f0val,df0dx,df0dx2] = obj.computeCost(x);  % ya lo calcula lo otro
-                % CONSTRAINTS 
-                fval=obj.computeConstraintFunction(x,lambda);  % ya lo calcula
-                [dfdx,dfdx2] = obj.computeConstraintDerivative(Be,D,x,v1,v2,V); % ya lo calcula
-                % INVOKING MMA
-                % obj.computeNewDesign()
-                [xmma,~,~,~,~,~,~,~,~,low,upp] = ...
-                    mmasub(m,n_val,loop,xval,xmin,xmax,xold1,xold2, ...
-                    f0val,df0dx,df0dx2,fval,dfdx,dfdx2,low,upp,a0,a_mma,c,d);
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+                % MMA
+                [xmma,low,upp,xold1,xval,f0val] = obj.computeNewDesign(x,lambda,Be,D,v1,v2,V,m,n_val,loop,xmin,xmax,xold1,xold2,low,upp,a0,a_mma,c,d);
                 % BUCKLING MODES
                 [Mode1,Mode2] = obj.computeBucklingModes(v1,v2);
                 % CONVERGENCE DOUBLES EIGENVLAUES
@@ -182,7 +143,6 @@ classdef EulerBeamOptimizer < handle
                 plot(cost)
                 figure(4)
                 plot(vol)
-
             end
    
         end
@@ -200,15 +160,13 @@ classdef EulerBeamOptimizer < handle
             xmax=[xmax; 1000];
             xold1=x;
             xold2=x;
-            loop=0;
-            
+            loop=0;   
             low = zeros(n_val,1);
             upp = ones(n_val,1);
             a0 = 1;
             a_mma = zeros(m,1);
             d = zeros(m,1);
             c = 1000*ones(m,1);
-
         end
 
         function [V,D,v1,v2,lambda] = computeEigenModesAndValues(obj,freenodes,K,B)
@@ -221,6 +179,34 @@ classdef EulerBeamOptimizer < handle
                 v1=V(:,2);
                 v2=V(:,1);
             end
+        end
+
+        function [xmma,low,upp,xold1,xval,f0val] = computeNewDesign(obj,x,lambda,Be,D,v1,v2,V,m,n_val,loop,xmin,xmax,xold1,xold2,low,upp,a0,a_mma,c,d)
+%             s.designVar = x;
+%             s.type = obj.optimizerType;
+%             s.constraintCase = ;
+%             s.cost = ;
+%             s.constraint = ;
+%             s.dualVariable = ;
+%             s.maxIter = ;
+%             s.incrementalScheme = ;
+%             s.targetParameters = ;
+%             s.historyPrinterSettings = ;
+%             create = Optimizer.create(s);
+%             solution = create.solveProblem();
+
+            % UPDATING OF THE SOLUTION
+            xval = x; % design variable -----> será el input al optimizier_MMA
+            % OBJECTIVE FUNCTION
+            [f0val,df0dx,df0dx2] = obj.computeCost(x);  % ya lo calcula lo otro
+            % CONSTRAINTS
+            fval=obj.computeConstraintFunction(x,lambda);  % ya lo calcula
+            [dfdx,dfdx2] = obj.computeConstraintDerivative(Be,D,x,v1,v2,V); % ya lo calcula
+            % INVOKING MMA
+            [xmma,~,~,~,~,~,~,~,~,low,upp] = ...
+                mmasub(m,n_val,loop,xval,xmin,xmax,xold1,xold2, ...
+                f0val,df0dx,df0dx2,fval,dfdx,dfdx2,low,upp,a0,a_mma,c,d);
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         end
 
         function [f0val,df0dx,df0dx2] = computeCost(obj,x)
@@ -267,15 +253,12 @@ classdef EulerBeamOptimizer < handle
                     
                     for i=1:N
                         dfdx(2,i)= -(2*x(i,1))*(W(2*(i-1)+1: 2*(i-1)+4,2)'*Be*W(2*(i-1)+1: 2*(i-1)+4,2));
-                    end
-                    
-                    
+                    end  
                     
                 else
                     D
                     disp('dobles')
                     % OBJECTIVE FUNCTION'S FIRST DERIVATIVE CALCULATION FOR DOUBLE EIGENVALUES
-                    
                     % AUXILIAR VECTORS FOR DERIVATIVE'S CALCULATION
                     Q1=zeros(2*N+2,1);
                     Q2=zeros(2*N+2,1);
@@ -317,10 +300,6 @@ classdef EulerBeamOptimizer < handle
                 dfdx(2,N+1)=1;            
         end
         
-        function computeNewDesign()
-            
-        end
-        
         function displayIteration(obj,loop,x,f0val,D)
             N = obj.nElem;
             disp([' It.: ' sprintf('%4i',loop) ' Obj.: ' sprintf('%10.4f',f0val) ...
@@ -353,10 +332,8 @@ classdef EulerBeamOptimizer < handle
                 % AXES DEFINION FOR FIGURES
                 ch= 0:L:1-L;
                 h= 0:L:1;       
-
                 % COLUMN'S PROFILE
                 z=sqrt(x(1:N));
-
                 % PLOT OF THE BEST STRONGEST PROFILE OF THE COLUMN AGAINST BUCKLING
                 % Clamped-clamped configuration
                 figure(1)
