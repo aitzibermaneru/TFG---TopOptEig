@@ -13,6 +13,17 @@ classdef IterativeProcessComputer < handle
         inertiaMoment
         minThick
         maxThick
+        mode1
+        mode2
+        freeNodes
+        v1
+        v2
+        V
+        lambda
+        D
+        bendingMatrix
+        stiffnessMatrix
+        Be
     end
 
     properties (Access = private)
@@ -69,7 +80,7 @@ classdef IterativeProcessComputer < handle
             N = obj.nElem;
             n_val=obj.nValues;
             m = obj.nConstraints;
-            loop = obj.looping;
+            iter = obj.looping;
             x = obj.designVariable;
             xmin = obj.xMin;
             xmax = obj.xMax;
@@ -81,46 +92,52 @@ classdef IterativeProcessComputer < handle
             a_mma = obj.aMMA;
             d = obj.dVal;
             c = obj.cVal;
-            e          = zeros(loop);
-            E1             = zeros(loop);
-            E2             = zeros(loop);
+            e          = zeros(iter);
+            E1             = zeros(iter);
+            E2             = zeros(iter);
             % Elemental Matrices
-            Be = obj.computeElementalBendingMatrix();
-            Ke = obj.computeElementalStiffnessMatrix();
+            obj.computeElementalBendingMatrix();
+            obj.computeStiffnessMatrix();
+
+            obj.computeBoundaryConditions();
+
             % looping
             change =1;
-            while (change > 0.0005) && (loop < 1000)
-                loop = loop + 1;
-                % B AND K MATRICES ASSEMBLY
-                B = obj.computeBendingMatrix(Be,x);
-                K = obj.computeStiffnessMatrix(Ke);
-                % BOUNDARY CONDITIONS
-                [~,~,freenodes] = obj.computeBoundaryConditions();
-                % EIGENVALUES AND EIGENVECTORS
-                [V,D,v1,v2,lambda] = obj.computeEigenModesAndValues(freenodes,K,B);
+            while (change > 0.0005) && (iter < 1000)
+                iter = iter + 1;
+                obj.computeBendingMatrix(x);
+                obj.computeEigenModesAndValues();
                 % MMA
-                [xmma,low,upp,xold1,xval,f0val] = obj.computeNewDesign(x,lambda,Be,D,v1,v2,V,m,n_val,loop,xmin,xmax,xold1,xold2,low,upp,a0,a_mma,c,d);
+                [xmma,low,upp,xold1,xval,f0val] = obj.computeNewDesign(x,m,n_val,iter,xmin,xmax,xold1,xold2,low,upp,a0,a_mma,c,d);
                 % BUCKLING MODES
-                [Mode1,Mode2] = obj.computeBucklingModes(v1,v2);
+                obj.computeBucklingModes();
+
                 % CONVERGENCE DOUBLES EIGENVLAUES
-                [e,E1,E2]= obj.computeConvergence2Eigenvalues(loop,D,e,E1,E2);
+                [e,E1,E2]= obj.computeConvergence2Eigenvalues(iter,e,E1,E2);
                 % PLOTTING
-                obj.plot(Mode1,Mode2,e,E1,E2,x)
                 %OUTPUT VARIABLES UPDATING
                 xold2 = xold1;
                 xold1 = xval;
                 x = xmma;
                 change = max(abs(x-xold1));
                 % PRINTING OF THE RESULTS
-                obj.displayIteration(loop,x,f0val,D)
+                obj.displayIteration(iter,x,f0val)
                 % PLOTTING, COST AND VOLUME
-                cost(loop) = -xmma(N+1);
-                vol(loop) = (1/N)*sum(x(1:N));  % x=xmma, esta bien?
+                cost(iter) = -xmma(N+1);
+                vol(iter) = (1/N)*sum(x(1:N));  % x=xmma, esta bien?
+                
+                obj.plotFigures(e,E1,E2,x,cost,vol)
+            end
+        end
+
+        
+
+        function plotFigures(obj,e,E1,E2,x,cost,vol)
+                obj.plot(e,E1,E2,x)                
                 figure(3)
                 plot(cost)
                 figure(4)
                 plot(vol)
-            end
         end
 
         function Be = computeElementalBendingMatrix(obj)
@@ -132,6 +149,7 @@ classdef IterativeProcessComputer < handle
             Be(2,1:4) = c1*[c3 c4 -c3 c4/2];
             Be(3,1:4) = c1*[-c2 -c3 c2 -c3];
             Be(4,1:4) = c1*[c3 c4/2 -c3 c4];
+            obj.Be = Be;
         end
 
         function [c1,c2,c3,c4] = coeffsBending(obj,L,E,I)
@@ -158,33 +176,50 @@ classdef IterativeProcessComputer < handle
             c5 = L^2;
         end
 
-        function B = computeBendingMatrix(obj,Be,x)
+        function computeBendingMatrix(obj,x)
             N = obj.nElem;
             B=sparse(2*N+2, 2*N+2);    
             for iElem = 1: N
                 iDof=[2*iElem-1; 2*iElem; 2*(iElem+1)-1; 2*(iElem+1)];
-                B(iDof,iDof)=B(iDof,iDof)+(x(iElem)^2)*Be;
+                B(iDof,iDof)=B(iDof,iDof)+(x(iElem)^2)*obj.Be;
             end
+            obj.bendingMatrix = B;
         end
 
-        function K = computeStiffnessMatrix(obj,Ke)
+        function K = computeStiffnessMatrix(obj)
+            Ke = obj.computeElementalStiffnessMatrix();            
             N = obj.nElem;
             K = sparse(2*N+2, 2*N+2);     
             for iElem = 1: N
                 iDof=[2*iElem-1; 2*iElem; 2*(iElem+1)-1; 2*(iElem+1)];
                 K(iDof,iDof)=K(iDof,iDof)+ Ke;
             end
+            obj.stiffnessMatrix = K;
         end
 
-        function  [fixnodes,nodes,freenodes] = computeBoundaryConditions(obj)
+        function  computeBoundaryConditions(obj)
             N = obj.nElem;
             fixnodes = union([1,2], [2*N+1,2*N+2]);
-            nodes      = 1:2*N+2;
-            freenodes= setdiff(nodes,fixnodes);
+            nodes = 1:2*N+2;
+            free  = setdiff(nodes,fixnodes);
+            obj.freeNodes = free;
         end
-        function [V,D,v1,v2,lambda] = computeEigenModesAndValues(obj,freenodes,K,B)
-            [V,D]=eigs(B(freenodes,freenodes),K(freenodes,freenodes),2,'SM');
+
+        function computeEigenModesAndValues(obj)            
+            free = obj.freeNodes;
+            Bfree = obj.bendingMatrix(free,free);
+            Kfree = obj.stiffnessMatrix(free,free);
+            [V,D] = obj.computeEigenFunctionAndValues(Bfree,Kfree);
             lambda=sort(diag(D));
+            [v1,v2] = obj.reorderModes(lambda,V,D);
+            obj.v1 = v1;
+            obj.v2 = v2;
+            obj.V  = V;
+            obj.D  = D;
+            obj.lambda = lambda;
+        end
+
+        function [v1,v2] = reorderModes(obj,lambda,V,D)
             if lambda(1)==D(1,1)
                 v1=V(:,1);
                 v2=V(:,2);
@@ -194,7 +229,11 @@ classdef IterativeProcessComputer < handle
             end
         end
 
-        function [xmma,low,upp,xold1,xval,f0val] = computeNewDesign(obj,x,lambda,Be,D,v1,v2,V,m,n_val,loop,xmin,xmax,xold1,xold2,low,upp,a0,a_mma,c,d)
+        function [V,D] = computeEigenFunctionAndValues(obj,B,K)
+            [V,D]=eigs(B,K,2,'SM');
+        end
+
+        function [xmma,low,upp,xold1,xval,f0val] = computeNewDesign(obj,x,m,n_val,loop,xmin,xmax,xold1,xold2,low,upp,a0,a_mma,c,d)
 %             s.designVar = x;
 %             s.type = obj.optimizerType;
 %             s.constraintCase = ;
@@ -212,8 +251,8 @@ classdef IterativeProcessComputer < handle
             % OBJECTIVE FUNCTION
             [f0val,df0dx,df0dx2] = obj.computeCost(x);  % ya lo calcula lo otro
             % CONSTRAINTS
-            fval=obj.computeConstraintFunction(x,lambda);  % ya lo calcula
-            [dfdx,dfdx2] = obj.computeConstraintDerivative(Be,D,x,v1,v2,V); % ya lo calcula
+            fval=obj.computeConstraintFunction(x);  % ya lo calcula
+            [dfdx,dfdx2] = obj.computeConstraintDerivative(x); % ya lo calcula
             % INVOKING MMA
             [xmma,~,~,~,~,~,~,~,~,low,upp] = ...
                 mmasub(m,n_val,loop,xval,xmin,xmax,xold1,xold2, ...
@@ -231,12 +270,19 @@ classdef IterativeProcessComputer < handle
             df0dx2 = 0*df0dx;
         end
 
-        function fx = computeConstraintFunction(obj,x,lambda)
+        function fx = computeConstraintFunction(obj,x)
+            l = obj.lambda;
             N = obj.nElem;
-            fx = [x(N+1)-lambda(1),x(N+1)-lambda(2),(1/N)*sum(x(1:N))-1]';
+            fx = [x(N+1)-l(1),x(N+1)-l(2),(1/N)*sum(x(1:N))-1]';
         end
         
-        function [dfdx, dfdx2] = computeConstraintDerivative(obj,Be,D,x,v1,v2,V)
+        function [dfdx, dfdx2] = computeConstraintDerivative(obj,x)
+                D = obj.D;
+                V = obj.V;
+                v1 = obj.v1;
+                v2 = obj.v2;
+                Belem = obj.Be;
+                
                 N = obj.nElem;
                 m = obj.nConstraints;
                 % CONSTRAINTS VECTOR'S FIRST DERIVATIVE
@@ -252,13 +298,13 @@ classdef IterativeProcessComputer < handle
                         W(i,1)=v1(i-2);
                     end
                     for i=1:N
-                        dfdx(1,i)= -(2*x(i,1))*(W(2*(i-1)+1: 2*(i-1)+4,1)'*Be*W(2*(i-1)+1: 2*(i-1)+4,1));
+                        dfdx(1,i)= -(2*x(i,1))*(W(2*(i-1)+1: 2*(i-1)+4,1)'*Belem*W(2*(i-1)+1: 2*(i-1)+4,1));
                     end
                     for i=3:2*N
                         W(i,2)=v2(i-2);
                     end
                     for i=1:N
-                        dfdx(2,i)= -(2*x(i,1))*(W(2*(i-1)+1: 2*(i-1)+4,2)'*Be*W(2*(i-1)+1: 2*(i-1)+4,2));
+                        dfdx(2,i)= -(2*x(i,1))*(W(2*(i-1)+1: 2*(i-1)+4,2)'*Belem*W(2*(i-1)+1: 2*(i-1)+4,2));
                     end  
                 else
                     D
@@ -280,9 +326,9 @@ classdef IterativeProcessComputer < handle
                     A=zeros(2,2); 
                     for i=1:N
                         %Derivadas.
-                        dQ1(i,1)= (2*x(i,1))*(Q1(2*(i-1)+1: 2*(i-1)+4,1)'*Be*Q1(2*(i-1)+1: 2*(i-1)+4,1));
-                        dQ2(i,1)= (2*x(i,1))*(Q2(2*(i-1)+1: 2*(i-1)+4,1)'*Be*Q2(2*(i-1)+1: 2*(i-1)+4,1));
-                        dQ1Q2(i,1)= (2*x(i,1))*(Q1(2*(i-1)+1: 2*(i-1)+4,1)'*Be*Q2(2*(i-1)+1: 2*(i-1)+4,1));
+                        dQ1(i,1)= (2*x(i,1))*(Q1(2*(i-1)+1: 2*(i-1)+4,1)'*Belem*Q1(2*(i-1)+1: 2*(i-1)+4,1));
+                        dQ2(i,1)= (2*x(i,1))*(Q2(2*(i-1)+1: 2*(i-1)+4,1)'*Belem*Q2(2*(i-1)+1: 2*(i-1)+4,1));
+                        dQ1Q2(i,1)= (2*x(i,1))*(Q1(2*(i-1)+1: 2*(i-1)+4,1)'*Belem*Q2(2*(i-1)+1: 2*(i-1)+4,1));
                         A=[dQ1(i,1) dQ1Q2(i,1); dQ1Q2(i,1) dQ2(i,1)];
                         [U,R]=eigs(A,2,'SM');
                         S=sort(diag(R));
@@ -294,32 +340,34 @@ classdef IterativeProcessComputer < handle
                 dfdx(2,N+1)=1;            
         end
         
-        function displayIteration(obj,loop,x,f0val,D)
+        function displayIteration(obj,loop,x,f0val)
             N = obj.nElem;
             disp([' It.: ' sprintf('%4i',loop) ' Obj.: ' sprintf('%10.4f',f0val) ...
                 ' Vol.: ' sprintf('%6.3f',  (1/N)*(sum(x)-x(N+1))  ) ...
-                ' ch.: ' sprintf('%6.3f',abs(D(2,2)-D(1,1)) )])
+                ' ch.: ' sprintf('%6.3f',abs(obj.D(2,2)-obj.D(1,1)) )])
         end
 
-        function [Mode1,Mode2] = computeBucklingModes(obj,v1,v2)
+        function computeBucklingModes(obj)
             N = obj.nElem;
             %CALCULATION THE OF BUCKLING MODES
             Mode1=zeros(2*N+2);
             Mode2=zeros(2*N+2);
             for i=3:2*N
-                Mode1(i)=v1(i-2);
-                Mode2(i)=v2(i-2);
+                Mode1(i)=obj.v1(i-2);
+                Mode2(i)=obj.v2(i-2);
             end
+            obj.mode1 = Mode1;
+            obj.mode2 = Mode2;
         end
 
-        function [e,E1,E2]= computeConvergence2Eigenvalues(obj,loop,D,e,E1,E2)
+        function [e,E1,E2]= computeConvergence2Eigenvalues(obj,iter,e,E1,E2)
             % CONVERGENCE OF DOUBLE EIGENVALUES
-            e(loop)=loop;
-            E1(loop)= D(1,1);
-            E2(loop)=D(2,2);
+            e(iter)=iter;
+            E1(iter)= obj.D(1,1);
+            E2(iter)= obj.D(2,2);
         end
 
-        function plot(obj,Mode1,Mode2,e,E1,E2,x)
+        function plot(obj,e,E1,E2,x)
                 N = obj.nElem;
                 L = obj.length;
                 % AXES DEFINION FOR FIGURES
@@ -335,9 +383,9 @@ classdef IterativeProcessComputer < handle
                 xlabel('x','Interpreter', 'latex','fontsize',14,'fontweight','b');
                 ylabel('A(x)','Interpreter', 'latex','fontsize',14,'fontweight','b');
                 %Buckling modes
-                subplot(2,2,2); plot(h,-Mode1(1:2:2*N+2));
+                subplot(2,2,2); plot(h,-obj.mode1(1:2:2*N+2));
                 title('First Buckling Mode','Interpreter', 'latex','FontSize',14, 'fontweight','b')
-                subplot(2,2,4); plot(h,-Mode2(1:2:2*N+2));
+                subplot(2,2,4); plot(h,-obj.mode2(1:2:2*N+2));
                 title('Second Buckling Mode','Interpreter', 'latex','FontSize',14, 'fontweight','b')
                 figure(2)
                 hold on                
