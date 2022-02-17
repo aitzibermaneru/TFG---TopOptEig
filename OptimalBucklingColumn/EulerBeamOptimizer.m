@@ -13,21 +13,13 @@ classdef EulerBeamOptimizer < handle
         inertiaMoment
         minThick
         maxThick
+        maxIter 
     end
 
     properties (Access = private)
         designVariable
-        xMin
-        xMax
-        xOld1
-        xOld2
-        looping
-        lOW
-        uPP
-        a0Val
-        aMMA
-        dVal
-        cVal
+        nIter
+        mmaParams
     end
      
     methods (Access = public)
@@ -52,6 +44,7 @@ classdef EulerBeamOptimizer < handle
             obj.minThick      = 0.25;
             obj.maxThick      = 10;
             obj.optimizerType = 'MMA';
+            obj.maxIter       = 1000;
         end
 
         function obj = computeVariablesMMA(obj)
@@ -66,20 +59,21 @@ classdef EulerBeamOptimizer < handle
             solution = MMAVariablesComputer(s);
             solution.compute();
             obj.designVariable = solution.designVariable;
-            obj.xMin    = solution.xmin;
-            obj.xMax    = solution.xmax;
-            obj.xOld1   = solution.xold1;
-            obj.xOld2   = solution.xold2;
-            obj.looping = solution.loop;
-            obj.uPP     = solution.upp;
-            obj.lOW     = solution.low;
-            obj.aMMA    = solution.a_mma;
-            obj.a0Val   = solution.a0;
-            obj.dVal    = solution.d;
-            obj.cVal    = solution.c;
+            obj.mmaParams.xMin    = solution.xmin;
+            obj.mmaParams.xMax    = solution.xmax;
+            obj.mmaParams.xOld1   = solution.xold1;
+            obj.mmaParams.xOld2   = solution.xold2;
+            obj.nIter             = solution.loop;
+            obj.mmaParams.uPP     = solution.upp;
+            obj.mmaParams.lOW      = solution.low;
+            obj.mmaParams.aMMA    = solution.a_mma;
+            obj.mmaParams.a0Val   = solution.a0;
+            obj.mmaParams.dVal    = solution.d;
+            obj.mmaParams.cVal    = solution.c;
         end
 
         function obj = computeIterativeProcess(obj)
+            s.mmaParams       = obj.mmaParams;
             s.nElem          = obj.nElem;
             s.nConstraints   = obj.nConstraints; 
             s.length         = obj.length;
@@ -88,18 +82,9 @@ classdef EulerBeamOptimizer < handle
             s.inertiaMoment  = obj.inertiaMoment;
             s.minThick       = obj.minThick;
             s.maxThick       = obj.maxThick;
-            s.loop           = obj.looping;
+            s.loop           = obj.nIter;
             s.designVariable = obj.designVariable;
-            s.xMin           = obj.xMin;
-            s.xMax           = obj.xMax;
-            s.xOld1          = obj.xOld1;
-            s.xOld2          = obj.xOld2;
-            s.lOW            = obj.lOW;
-            s.uPP            = obj.uPP;
-            s.a0Val          = obj.a0Val;
-            s.aMMA           = obj.aMMA;
-            s.dVal           = obj.dVal;
-            s.cVal           = obj.cVal;
+            s.maxIter        = obj.maxIter;
             solution = IterativeProcessComputer(s);
             solution.compute();
             obj.designVariable = solution.designVariable;

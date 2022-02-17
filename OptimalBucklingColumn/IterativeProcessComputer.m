@@ -24,6 +24,11 @@ classdef IterativeProcessComputer < handle
         bendingMatrix
         stiffnessMatrix
         Be
+        nIter
+        maxIter
+        e
+        E1
+        E2
     end
 
     properties (Access = private)
@@ -31,13 +36,19 @@ classdef IterativeProcessComputer < handle
         xMax
         xOld1
         xOld2
-        looping
         lOW
         uPP
         a0Val
         aMMA
         dVal
         cVal
+        hasFinished
+        change
+        cost
+        constraint
+        xMMA
+        xVal
+        vol
     end
 
     methods (Access = public)
@@ -62,82 +73,79 @@ classdef IterativeProcessComputer < handle
             obj.minThick       = cParams.minThick;
             obj.maxThick       = cParams.maxThick;
             obj.nValues        = cParams.nValues;
-            obj.looping        = cParams.loop;
+            obj.nIter          = cParams.loop;
             obj.designVariable = cParams.designVariable;
-            obj.xMin           = cParams.xMin;
-            obj.xMax           = cParams.xMax;
-            obj.xOld1          = cParams.xOld1;
-            obj.xOld2          = cParams.xOld2;
-            obj.lOW            = cParams.lOW;
-            obj.uPP            = cParams.uPP;
-            obj.a0Val          = cParams.a0Val;
-            obj.aMMA           = cParams.aMMA;
-            obj.dVal           = cParams.dVal;
-            obj.cVal           = cParams.cVal;
+            obj.xMin           = cParams.mmaParams.xMin;
+            obj.xMax           = cParams.mmaParams.xMax;
+            obj.xOld1          = cParams.mmaParams.xOld1;
+            obj.xOld2          = cParams.mmaParams.xOld2;
+            obj.lOW            = cParams.mmaParams.lOW;
+            obj.uPP            = cParams.mmaParams.uPP;
+            obj.a0Val          = cParams.mmaParams.a0Val;
+            obj.aMMA           = cParams.mmaParams.aMMA;
+            obj.dVal           = cParams.mmaParams.dVal;
+            obj.cVal           = cParams.mmaParams.cVal;
+            obj.maxIter        = cParams.maxIter;
          end
 
-        function obj = computeIterativeProcess(obj)
-            N = obj.nElem;
-            n_val=obj.nValues;
-            m = obj.nConstraints;
-            iter = obj.looping;
-            x = obj.designVariable;
-            xmin = obj.xMin;
-            xmax = obj.xMax;
-            xold1 = obj.xOld1;
-            xold2 = obj.xOld2;
-            low = obj.lOW;
-            upp = obj.uPP;
-            a0 = obj.a0Val;
-            a_mma = obj.aMMA;
-            d = obj.dVal;
-            c = obj.cVal;
-            e          = zeros(iter);
-            E1             = zeros(iter);
-            E2             = zeros(iter);
-            % Elemental Matrices
-            obj.computeElementalBendingMatrix();
-            obj.computeStiffnessMatrix();
-
-            obj.computeBoundaryConditions();
-
-            % looping
-            change =1;
-            while (change > 0.0005) && (iter < 1000)
-                iter = iter + 1;
-                obj.computeBendingMatrix(x);
-                obj.computeEigenModesAndValues();
-                % MMA
-                [xmma,low,upp,xold1,xval,f0val] = obj.computeNewDesign(x,m,n_val,iter,xmin,xmax,xold1,xold2,low,upp,a0,a_mma,c,d);
-                % BUCKLING MODES
-                obj.computeBucklingModes();
-
-                % CONVERGENCE DOUBLES EIGENVLAUES
-                [e,E1,E2]= obj.computeConvergence2Eigenvalues(iter,e,E1,E2);
-                % PLOTTING
-                %OUTPUT VARIABLES UPDATING
-                xold2 = xold1;
-                xold1 = xval;
-                x = xmma;
-                change = max(abs(x-xold1));
-                % PRINTING OF THE RESULTS
-                obj.displayIteration(iter,x,f0val)
-                % PLOTTING, COST AND VOLUME
-                cost(iter) = -xmma(N+1);
-                vol(iter) = (1/N)*sum(x(1:N));  % x=xmma, esta bien?
-                
-                obj.plotFigures(e,E1,E2,x,cost,vol)
+         function obj = computeIterativeProcess(obj)
+             obj.updateSetting();
+             obj.change = 1;
+             obj.hasFinished = 0;
+             while ~obj.hasFinished
+                obj.increaseIter();
+                obj.update();
+                obj.updateStatus();
+                obj.computeNewDesign();
+                obj.updateOutput();
+                obj.displayIteration()
+                obj.plotFigures();
             end
+
         end
 
-        
+        function updateSetting(obj)
+            obj.e = zeros(obj.nIter);
+            obj.E1 = zeros(obj.nIter);
+            obj.E2 = zeros(obj.nIter);
+            obj.computeElementalBendingMatrix();
+            obj.computeStiffnessMatrix();
+            obj.computeBoundaryConditions();
+        end
 
-        function plotFigures(obj,e,E1,E2,x,cost,vol)
-                obj.plot(e,E1,E2,x)                
-                figure(3)
-                plot(cost)
-                figure(4)
-                plot(vol)
+        function increaseIter(obj)
+            obj.nIter = obj.nIter+1;
+        end
+
+        function update(obj)
+            obj.computeBendingMatrix();
+            obj.computeEigenModesAndValues();
+            obj.computeBucklingModes();
+            obj.computeConvergence2Eigenvalues();
+        end
+
+        function updateStatus(obj)
+            obj.hasFinished = (obj.change <= 0.0005) || (obj.nIter >= obj.maxIter);
+        end
+
+        function updateOutput(obj)
+            obj.xOld2 = obj.xOld1;
+            obj.xOld1 = obj.xVal;
+            obj.designVariable = obj.xMMA;
+            obj.change = max(abs(obj.designVariable-obj.xOld1));
+        end
+
+        function plotFigures(obj)
+            N = obj.nElem;
+            iter = obj.nIter;
+            x = obj.designVariable;
+            obj.cost.val(iter) = -obj.xMMA(N+1);
+            obj.vol(iter) = (1/N)*sum(x(1:N));
+            obj.plot()
+            figure(3)
+            plot(obj.cost.val)
+            figure(4)
+            plot(obj.vol)
         end
 
         function Be = computeElementalBendingMatrix(obj)
@@ -176,7 +184,8 @@ classdef IterativeProcessComputer < handle
             c5 = L^2;
         end
 
-        function computeBendingMatrix(obj,x)
+        function computeBendingMatrix(obj)
+            x = obj.designVariable;
             N = obj.nElem;
             B=sparse(2*N+2, 2*N+2);    
             for iElem = 1: N
@@ -233,7 +242,7 @@ classdef IterativeProcessComputer < handle
             [V,D]=eigs(B,K,2,'SM');
         end
 
-        function [xmma,low,upp,xold1,xval,f0val] = computeNewDesign(obj,x,m,n_val,loop,xmin,xmax,xold1,xold2,low,upp,a0,a_mma,c,d)
+        function computeNewDesign(obj)
 %             s.designVar = x;
 %             s.type = obj.optimizerType;
 %             s.constraintCase = ;
@@ -246,86 +255,88 @@ classdef IterativeProcessComputer < handle
 %             s.historyPrinterSettings = ;
 %             create = Optimizer.create(s);
 %             solution = create.solveProblem();
-            % UPDATING OF THE SOLUTION
+            n_val=obj.nValues;
+            m = obj.nConstraints;
+            xmin = obj.xMin;
+            xmax = obj.xMax;
+            xold1 = obj.xOld1;
+            xold2 = obj.xOld2;
+            low = obj.lOW;
+            upp = obj.uPP;
+            a0 = obj.a0Val;
+            a_mma = obj.aMMA;
+            d = obj.dVal;
+            c = obj.cVal;
+            iter = obj.nIter;
+            x = obj.designVariable;
             xval = x; % design variable -----> será el input al optimizier_MMA
-            % OBJECTIVE FUNCTION
-            [f0val,df0dx,df0dx2] = obj.computeCost(x);  % ya lo calcula lo otro
-            % CONSTRAINTS
-            fval=obj.computeConstraintFunction(x);  % ya lo calcula
-            [dfdx,dfdx2] = obj.computeConstraintDerivative(x); % ya lo calcula
-            % INVOKING MMA
+            [f0val,df0dx,df0dx2] = obj.computeCost(x); 
+            fval =obj.computeConstraintFunction(x);
+            [dfdx,dfdx2] = obj.computeConstraintDerivative(x);
             [xmma,~,~,~,~,~,~,~,~,low,upp] = ...
-                mmasub(m,n_val,loop,xval,xmin,xmax,xold1,xold2, ...
+                mmasub(m,n_val,iter,xval,xmin,xmax,xold1,xold2, ...
                 f0val,df0dx,df0dx2,fval,dfdx,dfdx2,low,upp,a0,a_mma,c,d);
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            obj.lOW = low;
+            obj.uPP = upp;
+            obj.xOld1 = xold1;
+            obj.xVal = xval;
+            obj.xMMA = xmma;
         end
 
         function [f0val,df0dx,df0dx2] = computeCost(obj,x)
             N = obj.nElem;
-            f0val=-x(N+1);
-            % OBJECTIVE FUNCTION'S FIRST DERIVATIVE
-            df0dx=zeros(N+1,1);
-            df0dx(N+1)=-1;
-            % OBJECTIVE FUNCTION'S SECOND DERIVATIVE
+            f0val = -x(N+1); 
+            df0dx = zeros(N+1,1);
+            df0dx(N+1) = -1;
             df0dx2 = 0*df0dx;
+            obj.cost.value = f0val;
+            obj.cost.gradient = df0dx;
         end
 
         function fx = computeConstraintFunction(obj,x)
             l = obj.lambda;
             N = obj.nElem;
             fx = [x(N+1)-l(1),x(N+1)-l(2),(1/N)*sum(x(1:N))-1]';
+            obj.constraint.value = fx;
         end
         
         function [dfdx, dfdx2] = computeConstraintDerivative(obj,x)
-                D = obj.D;
-                V = obj.V;
-                v1 = obj.v1;
-                v2 = obj.v2;
                 Belem = obj.Be;
-                
                 N = obj.nElem;
                 m = obj.nConstraints;
-                % CONSTRAINTS VECTOR'S FIRST DERIVATIVE
                 dfdx=zeros(m,N+1);
                 dfdx(3,1:N)=(1/N)*ones(1,N);
-                % CONSTRAINTS VECTOR'S SECOND DERIVATIVE
                 dfdx2 = 0*dfdx;
-                % MULTIPLE EIGENVALUE'S IDENTIFICATION
-                if abs(D(2,2)-D(1,1))> 1
-                    % OBJECTIVE FUNCTION'S FIRST DERIVATIVE CALCULATION FOR SIMPLE EIGENVALUES
+                if abs(obj.D(2,2)-obj.D(1,1))> 1 % Simple eigenvalues
                     W=zeros(2*N+2,2);
                     for i=3:2*N
-                        W(i,1)=v1(i-2);
+                        W(i,1)=obj.v1(i-2);
                     end
                     for i=1:N
                         dfdx(1,i)= -(2*x(i,1))*(W(2*(i-1)+1: 2*(i-1)+4,1)'*Belem*W(2*(i-1)+1: 2*(i-1)+4,1));
                     end
                     for i=3:2*N
-                        W(i,2)=v2(i-2);
+                        W(i,2)=obj.v2(i-2);
                     end
                     for i=1:N
                         dfdx(2,i)= -(2*x(i,1))*(W(2*(i-1)+1: 2*(i-1)+4,2)'*Belem*W(2*(i-1)+1: 2*(i-1)+4,2));
                     end  
-                else
-                    D
+                else % Dobles eigenvalues
+                    obj.D
                     disp('dobles')
-                    % OBJECTIVE FUNCTION'S FIRST DERIVATIVE CALCULATION FOR DOUBLE EIGENVALUES
-                    % AUXILIAR VECTORS FOR DERIVATIVE'S CALCULATION
                     Q1=zeros(2*N+2,1);
                     Q2=zeros(2*N+2,1);
                     dQ1=zeros(N,1);
                     dQ2=zeros(N,1);
                     dQ1Q2=zeros(N,1);
                     for i=3:2*N
-                        Q1(i,1)=V(i-2,1);
+                        Q1(i,1)=obj.V(i-2,1);
                     end
                     for i=3:2*N
-                        Q2(i,1)=V(i-2,2);
+                        Q2(i,1)=obj.V(i-2,2);
                     end
                     % DERIVATIVES MATRIX DEFINITION
-                    A=zeros(2,2); 
                     for i=1:N
-                        %Derivadas.
                         dQ1(i,1)= (2*x(i,1))*(Q1(2*(i-1)+1: 2*(i-1)+4,1)'*Belem*Q1(2*(i-1)+1: 2*(i-1)+4,1));
                         dQ2(i,1)= (2*x(i,1))*(Q2(2*(i-1)+1: 2*(i-1)+4,1)'*Belem*Q2(2*(i-1)+1: 2*(i-1)+4,1));
                         dQ1Q2(i,1)= (2*x(i,1))*(Q1(2*(i-1)+1: 2*(i-1)+4,1)'*Belem*Q2(2*(i-1)+1: 2*(i-1)+4,1));
@@ -337,19 +348,22 @@ classdef IterativeProcessComputer < handle
                     end
                 end  
                 dfdx(1,N+1)=1;
-                dfdx(2,N+1)=1;            
+                dfdx(2,N+1)=1; 
+                obj.constraint.gradient = dfdx;
         end
         
-        function displayIteration(obj,loop,x,f0val)
+        function displayIteration(obj)
+            x = obj.designVariable;
             N = obj.nElem;
-            disp([' It.: ' sprintf('%4i',loop) ' Obj.: ' sprintf('%10.4f',f0val) ...
+            f0val = obj.cost.value;
+            iter = obj.nIter;
+            disp([' It.: ' sprintf('%4i',iter) ' Obj.: ' sprintf('%10.4f',f0val) ...
                 ' Vol.: ' sprintf('%6.3f',  (1/N)*(sum(x)-x(N+1))  ) ...
                 ' ch.: ' sprintf('%6.3f',abs(obj.D(2,2)-obj.D(1,1)) )])
         end
 
         function computeBucklingModes(obj)
             N = obj.nElem;
-            %CALCULATION THE OF BUCKLING MODES
             Mode1=zeros(2*N+2);
             Mode2=zeros(2*N+2);
             for i=3:2*N
@@ -360,37 +374,36 @@ classdef IterativeProcessComputer < handle
             obj.mode2 = Mode2;
         end
 
-        function [e,E1,E2]= computeConvergence2Eigenvalues(obj,iter,e,E1,E2)
-            % CONVERGENCE OF DOUBLE EIGENVALUES
-            e(iter)=iter;
-            E1(iter)= obj.D(1,1);
-            E2(iter)= obj.D(2,2);
+        function computeConvergence2Eigenvalues(obj)
+            iter = obj.nIter;
+            obj.e(iter)=iter;
+            obj.E1(iter)= obj.D(1,1);
+            obj.E2(iter)= obj.D(2,2);
         end
 
-        function plot(obj,e,E1,E2,x)
+        function plot(obj)
+                x = obj.designVariable;
                 N = obj.nElem;
                 L = obj.length;
-                % AXES DEFINION FOR FIGURES
-                ch= 0:L:1-L;
-                h= 0:L:1;       
-                % COLUMN'S PROFILE
-                z=sqrt(x(1:N));
-                % PLOT OF THE BEST STRONGEST PROFILE OF THE COLUMN AGAINST BUCKLING
-                % Clamped-clamped configuration
+                % axis and profile
+                ch = 0:L:1-L;
+                h  = 0:L:1;       
+                z = sqrt(x(1:N));
+                % Plotting Clamped-clamped configuration
                 figure(1)
                 subplot(2,2,[1 3]);plot(ch,z)
                 title('Clamped-Clamped Column Profile','Interpreter', 'latex','FontSize',20, 'fontweight','b');
                 xlabel('x','Interpreter', 'latex','fontsize',14,'fontweight','b');
                 ylabel('A(x)','Interpreter', 'latex','fontsize',14,'fontweight','b');
-                %Buckling modes
+                % Buckling modes
                 subplot(2,2,2); plot(h,-obj.mode1(1:2:2*N+2));
                 title('First Buckling Mode','Interpreter', 'latex','FontSize',14, 'fontweight','b')
                 subplot(2,2,4); plot(h,-obj.mode2(1:2:2*N+2));
                 title('Second Buckling Mode','Interpreter', 'latex','FontSize',14, 'fontweight','b')
                 figure(2)
                 hold on                
-                plot(e,E1);
-                plot(e,E2);
+                plot(obj.e,obj.E1);
+                plot(obj.e,obj.E2);
                 hold off
                 xlabel('Number of Iteration','Interpreter', 'latex','fontsize',18,'fontweight','b');
                 ylabel('Eigenvalues','Interpreter', 'latex','fontsize',18,'fontweight','b');
