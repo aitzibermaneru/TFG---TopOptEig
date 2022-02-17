@@ -59,21 +59,25 @@ classdef EulerBeamOptimizer < handle
             solution = MMAVariablesComputer(s);
             solution.compute();
             obj.designVariable = solution.designVariable;
-            obj.mmaParams.xMin    = solution.xmin;
-            obj.mmaParams.xMax    = solution.xmax;
-            obj.mmaParams.xOld1   = solution.xold1;
-            obj.mmaParams.xOld2   = solution.xold2;
-            obj.nIter             = solution.loop;
-            obj.mmaParams.uPP     = solution.upp;
-            obj.mmaParams.lOW      = solution.low;
-            obj.mmaParams.aMMA    = solution.a_mma;
-            obj.mmaParams.a0Val   = solution.a0;
-            obj.mmaParams.dVal    = solution.d;
-            obj.mmaParams.cVal    = solution.c;
+            obj.mmaParams = obj.createMMAparams(solution);
+        end
+
+        function cParams = createMMAparams(obj,s)
+            cParams.xMin    = s.xmin;
+            cParams.xMax    = s.xmax;
+            cParams.xOld1   = s.xold1;
+            cParams.xOld2   = s.xold2;
+            obj.nIter       = s.loop;
+            cParams.uPP     = s.upp;
+            cParams.lOW     = s.low;
+            cParams.aMMA    = s.a_mma;
+            cParams.a0Val   = s.a0;
+            cParams.dVal    = s.d;
+            cParams.cVal    = s.c;    
         end
 
         function obj = computeIterativeProcess(obj)
-            s.mmaParams       = obj.mmaParams;
+            s.mmaParams      = obj.mmaParams;
             s.nElem          = obj.nElem;
             s.nConstraints   = obj.nConstraints; 
             s.length         = obj.length;
