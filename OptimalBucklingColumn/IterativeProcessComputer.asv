@@ -59,9 +59,9 @@ classdef IterativeProcessComputer < handle
 
         function obj = IterativeProcessComputer(cParams)
             obj.init(cParams);
-            obj.computeBoundaryConditions();            
             obj.createCost();
             obj.createConstraint();
+            obj.computeBoundaryConditions();
 
 %             obj.createIncrementalScheme(cParams);
 %             obj.createDesignVariable(cParams);
@@ -102,27 +102,34 @@ classdef IterativeProcessComputer < handle
             obj.cVal           = cParams.mmaParams.cVal;
             obj.maxIter        = cParams.maxIter;
             obj.optimizerType  = cParams.optimizerType;
-
           % obj.designVariable = 'BucklingArea';
          end
 
          function obj = computeIterativeProcess(obj)
-% Refactor Constraint
-% Refactor mmaParams in Iteriative
-% Construct Optimizer;
+             % Step 1
+             % create cost and constraint classes
+             % Step 2
+%             s.type = 'MMA';
+%             s.incScheme = obj.createIncremenalScheme();
+%             s.designVar = obj.createDesignVariable();
+%             s.homogenizedVarComputer = obj.HomogenizedVarComputer();
+%             s.costConstraint = obj.createCostConstraint();
+%             s.dualVariable = obj.createDualVariable();
+%             s.optimizer = obj.createOptimizer();
+%             opt = Optimizer(s);
+%             obj.optimizer.solveProblem();
 
             % s.designVar = obj.designVariable;
-            % s.type     = obj.optimizerType;
-%             s.constraintCase = 'INEQUALIY';
-%             s.cost = obj.cost;
-%             s.constraint = obj.constraint;
-%             s.dualVariable = dualVariable;
+            % s.type = obj.optimizerType;
+%             s.constraintCase = ;
+%             s.cost = ;
+%             s.constraint = ;
+%             s.dualVariable = ;
 %             s.maxIter = ;
-%             s.incrementalScheme = [];
-%             s.targetParameters = [];
-%             s.historyPrinterSettings = [];
+%             s.incrementalScheme = ;
+%             s.targetParameters = ;
+%             s.historyPrinterSettings = ;
             % obj.optimizer = Optimizer.create();
-             %obj.optimizer.solveProblem();
 
              obj.updateSetting();
              obj.change = 1;
@@ -177,13 +184,24 @@ classdef IterativeProcessComputer < handle
             plot(obj.vol)
         end
 
-       function  computeBoundaryConditions(obj)
+
+
+
+
+
+
+        function  computeBoundaryConditions(obj)
             N = obj.nElem;
             fixnodes = union([1,2], [2*N+1,2*N+2]);
             nodes = 1:2*N+2;
             free  = setdiff(nodes,fixnodes);
             obj.freeNodes = free;
         end
+
+
+
+
+  
 
         function computeNewDesign(obj)
             n_val=obj.nValues;
@@ -203,7 +221,7 @@ classdef IterativeProcessComputer < handle
             xval = x; % design variable -----> será el input al optimizier_MMA
 
 
-            obj.constraint.computeFunctionAndGradient(); 
+            obj.cost.computeFunctionAndGradient(); 
             fval = obj.constraint.value;
             dfdx = obj.constraint.gradient;
             dfdx2 = 0;            
@@ -228,21 +246,20 @@ classdef IterativeProcessComputer < handle
             s.nElem = obj.nElem;
             s.designVariable = obj.designVariable;
             obj.cost = Cost(s);
-            %obj.cost.computeFunctionAndGradient();
         end
 
         function createConstraint(obj)
-            s.designVariable = obj.designVariable;
-            s.nElem = obj.nElem;
+            obj.designVariable = obj.designVariable;
+            obj.nElem = obj.nElem;
             s.freeNodes = obj.freeNodes;
             s.length = obj.length;
             s.youngModulus = obj.youngModulus;
             s.inertiaMoment = obj.inertiaMoment; 
-            s.nConstraints = obj.nConstraints;
             obj.constraint = Constraint(s);
-            obj.constraint.computeFunctionAndGradient();
         end
 
+     
+        
         function displayIteration(obj)
             x = obj.designVariable.value;
             N = obj.nElem;
@@ -250,14 +267,16 @@ classdef IterativeProcessComputer < handle
             iter = obj.nIter;
             disp([' It.: ' sprintf('%4i',iter) ' Obj.: ' sprintf('%10.4f',f0val) ...
                 ' Vol.: ' sprintf('%6.3f',  (1/N)*(sum(x)-x(N+1))  ) ...
-                ' ch.: ' sprintf('%6.3f',abs(obj.constraint.D(2,2)-obj.constraint.D(1,1)) )])
+                ' ch.: ' sprintf('%6.3f',abs(obj.D(2,2)-obj.D(1,1)) )])
         end
+
+ 
 
         function computeConvergence2Eigenvalues(obj)
             iter = obj.nIter;
             obj.e(iter)=iter;
-            obj.E1(iter)= obj.constraint.D(1,1);
-            obj.E2(iter)= obj.constraint.D(2,2);
+            obj.E1(iter)= obj.D(1,1);
+            obj.E2(iter)= obj.D(2,2);
         end
 
         function plot(obj)

@@ -1,7 +1,8 @@
 classdef Cost < handle
     
     properties (Access = public)
-        cost
+        gradient
+        value
     end
     
     properties (Access = private)
@@ -16,6 +17,10 @@ classdef Cost < handle
             obj.computeCost();
         end
         
+        function computeFunctionAndGradient(obj)
+            obj.computeCost();
+        end
+
     end
     
     methods (Access = private)
@@ -27,14 +32,13 @@ classdef Cost < handle
         
         function computeCost(obj)
             N = obj.nElem;
-            x = obj.designVariable;
+            x = obj.designVariable.value;
             f0val = -x(N+1); 
             df0dx = zeros(N+1,1);
             df0dx(N+1) = -1;
             df0dx2 = 0*df0dx;
-            obj.cost.value = f0val;
-            obj.cost.gradient = df0dx;
-            
+            obj.value = f0val;
+            obj.gradient = df0dx;            
         end
         
     end
