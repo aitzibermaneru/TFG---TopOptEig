@@ -73,7 +73,7 @@ classdef EulerBeamOptimizer < handle
             cParams.aMMA    = s.a_mma;
             cParams.a0Val   = s.a0;
             cParams.dVal    = s.d;
-            cParams.cVal    = s.c;    
+            cParams.cVal    = s.c;
         end
 
         function obj = computeIterativeProcess(obj)
@@ -89,6 +89,7 @@ classdef EulerBeamOptimizer < handle
             s.loop           = obj.nIter;
             s.designVariable = obj.designVariable;
             s.maxIter        = obj.maxIter;
+            s.optimizerType  = obj.optimizerType;
             solution = IterativeProcessComputer(s);
             solution.compute();
             obj.designVariable = solution.designVariable;
