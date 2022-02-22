@@ -307,6 +307,7 @@ classdef IterativeProcessComputer < handle
 
             f0val = obj.cost.value;
             df0dx = obj.cost.gradient;
+            df0dx2 = 0;
             [xmma,~,~,~,~,~,~,~,~,low,upp] = ...
                 mmasub(m,n_val,iter,xval,xmin,xmax,xold1,xold2, ...
                 f0val,df0dx,df0dx2,fval,dfdx,dfdx2,low,upp,a0,a_mma,c,d);
@@ -328,6 +329,7 @@ classdef IterativeProcessComputer < handle
               s.nElem = obj.nElem;
               s.designVariable = obj.designVariable;
               solution = Cost(s);
+              obj.cost = solution.cost;
         end
 
         function fx = computeConstraintFunction(obj,x)
