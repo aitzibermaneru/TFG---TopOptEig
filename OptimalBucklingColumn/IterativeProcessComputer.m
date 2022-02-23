@@ -5,7 +5,7 @@ classdef IterativeProcessComputer < handle
 %         dualVariable
 %         cost
 %         constraint
-        % optimizer
+%         optimizer
          optimizerType
 %         incrementalScheme
 %         optimizerSettings
@@ -20,18 +20,12 @@ classdef IterativeProcessComputer < handle
         inertiaMoment
         minThick
         maxThick
-        mode1
-        mode2
-        freeNodes
-
-        bendingMatrix
-        stiffnessMatrix
-        Be
         nIter
         maxIter
         e
         E1
         E2
+        freeNodes
     end
 
     properties (Access = private)
@@ -117,7 +111,7 @@ classdef IterativeProcessComputer < handle
 %             s.cost = obj.cost;
 %             s.constraint = obj.constraint;
 %             s.dualVariable = dualVariable;
-%             s.maxIter = ;
+%             s.maxIter = obj.maxIter;
 %             s.incrementalScheme = [];
 %             s.targetParameters = [];
 %             s.historyPrinterSettings = [];
@@ -200,8 +194,7 @@ classdef IterativeProcessComputer < handle
             c = obj.cVal;
             iter = obj.nIter;
             x = obj.designVariable.value;
-            xval = x; % design variable -----> será el input al optimizier_MMA
-
+            xval = x;
 
             obj.constraint.computeFunctionAndGradient(); 
             fval = obj.constraint.value;
@@ -212,7 +205,6 @@ classdef IterativeProcessComputer < handle
             f0val = obj.cost.value;
             df0dx = obj.cost.gradient;
             df0dx2 = 0;
-
 
             [xmma,~,~,~,~,~,~,~,~,low,upp] = ...
                 mmasub(m,n_val,iter,xval,xmin,xmax,xold1,xold2, ...

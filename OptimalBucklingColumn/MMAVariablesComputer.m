@@ -70,7 +70,7 @@ classdef MMAVariablesComputer < handle
             obj.a0 = 1;
             obj.a_mma = zeros(m,1);
             obj.d = zeros(m,1);
-            obj.c = 1000*ones(m,1);            
+            obj.c = 1000*ones(m,1);
             des = DesignVariable();
             des.update(x);
             obj.designVariable = des;
