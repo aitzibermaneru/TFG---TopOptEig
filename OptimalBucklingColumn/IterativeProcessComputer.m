@@ -2,13 +2,15 @@ classdef IterativeProcessComputer < handle
 
      properties (Access = public)
          designVariable
-%         dualVariable
-%         cost
-%         constraint
-%         optimizer
+         dualVariable
          optimizerType
-%         incrementalScheme
-%         optimizerSettings
+     end
+
+     properties (Access = private)
+         optimizer
+         cost
+         constraint
+         dual
      end
     
     properties (Access = private)
@@ -29,6 +31,7 @@ classdef IterativeProcessComputer < handle
     end
 
     properties (Access = private)
+        mmaParams
         xMin
         xMax
         xOld1
@@ -42,8 +45,6 @@ classdef IterativeProcessComputer < handle
         hasFinished
         change
         costHistory
-        cost
-        constraint
         xMMA
         xVal
         vol
@@ -56,14 +57,7 @@ classdef IterativeProcessComputer < handle
             obj.computeBoundaryConditions();            
             obj.createCost();
             obj.createConstraint();
-
-%             obj.createIncrementalScheme(cParams);
-%             obj.createDesignVariable(cParams);
-%             obj.createHomogenizedVarComputer(cParams)
-%             obj.createCostAndConstraint(cParams);
-%             obj.createDualVariable();
-%             obj.createOptimizer(cParams);
-%             obj.createVideoMaker(cParams);
+            %obj.createDualVariable();
         end
 
         function compute(obj)
@@ -84,39 +78,32 @@ classdef IterativeProcessComputer < handle
             obj.nValues        = cParams.nValues;
             obj.nIter          = cParams.loop;
             obj.designVariable = cParams.designVariable;
-            obj.xMin           = cParams.mmaParams.xMin;
-            obj.xMax           = cParams.mmaParams.xMax;
-            obj.xOld1          = cParams.mmaParams.xOld1;
-            obj.xOld2          = cParams.mmaParams.xOld2;
-            obj.lOW            = cParams.mmaParams.lOW;
-            obj.uPP            = cParams.mmaParams.uPP;
-            obj.a0Val          = cParams.mmaParams.a0Val;
-            obj.aMMA           = cParams.mmaParams.aMMA;
-            obj.dVal           = cParams.mmaParams.dVal;
-            obj.cVal           = cParams.mmaParams.cVal;
+            obj.mmaParams      = cParams.mmaParams;
             obj.maxIter        = cParams.maxIter;
             obj.optimizerType  = cParams.optimizerType;
-
-          % obj.designVariable = 'BucklingArea';
          end
 
          function obj = computeIterativeProcess(obj)
-% Refactor Constraint
-% Refactor mmaParams in Iteriative
-% Construct Optimizer;
 
-            % s.designVar = obj.designVariable;
-            % s.type     = obj.optimizerType;
-%             s.constraintCase = 'INEQUALIY';
-%             s.cost = obj.cost;
-%             s.constraint = obj.constraint;
-%             s.dualVariable = dualVariable;
-%             s.maxIter = obj.maxIter;
-%             s.incrementalScheme = [];
-%             s.targetParameters = [];
-%             s.historyPrinterSettings = [];
-            % obj.optimizer = Optimizer.create();
-             %obj.optimizer.solveProblem();
+% Refactor Constraint
+% Construct Optimizer;
+%              s.designVar = obj.designVariable;
+%              s.type     = obj.optimizerType;
+%              s.constraintCase = 'INEQUALIY';
+%              s.cost = obj.cost;
+%              obj.dualVariable = obj.dual.value;
+%              s.constraint = obj.constraint;
+%              s.dualVariable = obj.dualVariable; 
+%              s.maxIter = obj.maxIter;
+%              s.incrementalScheme = [];
+%              s.targetParameters = [];
+%              s.historyPrinterSettings = [];
+%              s.uncOptimizerSettings.ub = obj.mmaParams.lOW;
+%              s.uncOptimizerSettings.lb = obj.mmaParams.uPP;
+%              obj.optimizer = Optimizer.create(s);
+%              obj.upperBound = cParams.uncOptimizerSettings.ub;
+%              obj.lowerBound = cParams.uncOptimizerSettings.lb;     
+%              obj.optimizer.solveProblem();
 
              obj.updateSetting();
              obj.change = 1;
@@ -131,7 +118,13 @@ classdef IterativeProcessComputer < handle
                 obj.plotFigures();
             end
 
-        end
+         end
+
+%          function createDualVariable(obj)
+%             s.nConstraints = obj.nConstraints;
+%             s.obj.mmaParams.xOld2 = obj.mmaParams.xOld2;
+%             obj.dual = DualVariable(s);
+%          end
 
         function updateSetting(obj)
             obj.e  = zeros(obj.nIter);
@@ -152,10 +145,10 @@ classdef IterativeProcessComputer < handle
         end
 
         function updateOutput(obj)
-            obj.xOld2 = obj.xOld1;
-            obj.xOld1 = obj.xVal;
+            obj.mmaParams.xOld2 = obj.mmaParams.xOld1;
+            obj.mmaParams.xOld1 = obj.xVal;
             obj.designVariable.update(obj.xMMA);
-            obj.change = max(abs(obj.designVariable.value-obj.xOld1));
+            obj.change = max(abs(obj.designVariable.value-obj.mmaParams.xOld1));
         end
 
         function plotFigures(obj)
@@ -180,18 +173,18 @@ classdef IterativeProcessComputer < handle
         end
 
         function computeNewDesign(obj)
-            n_val=obj.nValues;
+            n_val = obj.nValues;
             m = obj.nConstraints;
-            xmin = obj.xMin;
-            xmax = obj.xMax;
-            xold1 = obj.xOld1;
-            xold2 = obj.xOld2;
-            low = obj.lOW;
-            upp = obj.uPP;
-            a0 = obj.a0Val;
-            a_mma = obj.aMMA;
-            d = obj.dVal;
-            c = obj.cVal;
+            xmin = obj.mmaParams.xMin;
+            xmax = obj.mmaParams.xMax;
+            xold1 = obj.mmaParams.xOld1;
+            xold2 = obj.mmaParams.xOld2;
+            low = obj.mmaParams.lOW;
+            upp = obj.mmaParams.uPP;
+            a0 = obj.mmaParams.a0Val;
+            a_mma = obj.mmaParams.aMMA;
+            d = obj.mmaParams.dVal;
+            c = obj.mmaParams.cVal;
             iter = obj.nIter;
             x = obj.designVariable.value;
             xval = x;
@@ -209,9 +202,9 @@ classdef IterativeProcessComputer < handle
             [xmma,~,~,~,~,~,~,~,~,low,upp] = ...
                 mmasub(m,n_val,iter,xval,xmin,xmax,xold1,xold2, ...
                 f0val,df0dx,df0dx2,fval,dfdx,dfdx2,low,upp,a0,a_mma,c,d);
-            obj.lOW = low;
-            obj.uPP = upp;
-            obj.xOld1 = xold1;
+            obj.mmaParams.lOW = low;
+            obj.mmaParams.uPP = upp;
+            obj.mmaParams.xOld1 = xold1;
             obj.xVal = xval;
             obj.xMMA = xmma;
         end
@@ -220,7 +213,6 @@ classdef IterativeProcessComputer < handle
             s.nElem = obj.nElem;
             s.designVariable = obj.designVariable;
             obj.cost = Cost(s);
-            %obj.cost.computeFunctionAndGradient();
         end
 
         function createConstraint(obj)
