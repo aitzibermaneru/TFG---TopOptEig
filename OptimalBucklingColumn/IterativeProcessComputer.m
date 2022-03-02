@@ -87,42 +87,39 @@ classdef IterativeProcessComputer < handle
 
 % Refactor Constraint
 % Construct Optimizer;
-%              s.designVar = obj.designVariable;
-%              s.type     = obj.optimizerType;
-%              s.constraintCase = 'INEQUALIY';
-%              s.cost = obj.cost;
-%              obj.dualVariable = obj.dual.value;
-%              s.constraint = obj.constraint;
-%              s.dualVariable = obj.dualVariable; 
-%              s.maxIter = obj.maxIter;
-%              s.incrementalScheme = [];
-%              s.targetParameters = [];
-%              s.historyPrinterSettings = [];
-%              s.uncOptimizerSettings.ub = obj.mmaParams.lOW;
-%              s.uncOptimizerSettings.lb = obj.mmaParams.uPP;
-%              obj.optimizer = Optimizer.create(s);
-%              obj.upperBound = cParams.uncOptimizerSettings.ub;
-%              obj.lowerBound = cParams.uncOptimizerSettings.lb;     
-%              obj.optimizer.solveProblem();
+             s.designVar = obj.designVariable;
+             s.type     = obj.optimizerType;
+             s.constraintCase = 'INEQUALIY';
+             s.cost = obj.cost;
+             s.constraint = obj.constraint;
+             s.dualVariable.value = zeros(1,obj.nConstraints); 
+             s.maxIter = obj.maxIter;
+             s.incrementalScheme = [];
+             s.targetParameters = [];
+             s.historyPrinterSettings = [];
+             s.uncOptimizerSettings.ub = 10;
+             s.uncOptimizerSettings.lb = 0.25;
+             obj.optimizer = Optimizer.create(s);    
+             obj.optimizer.solveProblem();
 
-             obj.updateSetting();
-             obj.change = 1;
-             obj.hasFinished = 0;
-             while ~obj.hasFinished
-                obj.increaseIter();
-                obj.update();
-                obj.updateStatus();
-                obj.computeNewDesign();
-                obj.updateOutput();
-                obj.displayIteration()
-                obj.plotFigures();
-            end
+%              obj.updateSetting();
+%              obj.change = 1;
+%              obj.hasFinished = 0;
+%              while ~obj.hasFinished
+%                 obj.increaseIter();
+%                 obj.update();
+%                 obj.updateStatus();
+%                 obj.computeNewDesign();
+%                 obj.updateOutput();
+%                 obj.displayIteration()
+%                 obj.plotFigures();
+%             end
 
          end
 
 %          function createDualVariable(obj)
 %             s.nConstraints = obj.nConstraints;
-%             s.obj.mmaParams.xOld2 = obj.mmaParams.xOld2;
+%             s.mmaParams.xOld2 = obj.mmaParams.xOld2;
 %             obj.dual = DualVariable(s);
 %          end
 
