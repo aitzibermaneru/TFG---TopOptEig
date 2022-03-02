@@ -50,6 +50,7 @@ classdef Constraint < handle
             obj.computeEigModes();           
             obj.computeConstraintFunction();
             obj.computeConstraintDerivative();
+            %obj.eigenValueModes.plot();
         end
         
     end
@@ -137,7 +138,7 @@ classdef Constraint < handle
             dfdx2 = obj.constraintDeriv.dfdx2;
             dfdx(1,obj.nElem+1)=1;
             dfdx(2,obj.nElem+1)=1;
-            obj.gradient = dfdx;
+            obj.gradient = dfdx';
         end
 
     end

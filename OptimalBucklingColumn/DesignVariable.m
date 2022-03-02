@@ -2,6 +2,7 @@ classdef DesignVariable < handle
     
     properties (Access = public)
        value
+       mesh
     end
     
     properties (Access = private)

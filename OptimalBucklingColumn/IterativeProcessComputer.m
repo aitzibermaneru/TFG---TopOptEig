@@ -94,11 +94,40 @@ classdef IterativeProcessComputer < handle
              s.constraint = obj.constraint;
              s.dualVariable.value = zeros(1,obj.nConstraints); 
              s.maxIter = obj.maxIter;
-             s.incrementalScheme = [];
-             s.targetParameters = [];
+             s.incrementalScheme.iStep = 1;
+             s.incrementalScheme.nSteps = 1;
+             s.targetParameters.optimality_tol = 0.0005;
              s.historyPrinterSettings = [];
              s.uncOptimizerSettings.ub = 10;
              s.uncOptimizerSettings.lb = 0.25;
+             s.historyPrinterSettings.shallPrint = obj.optimizerType;
+             s.historyPrinterSettings.fileName = 'OptimalBuckling';
+             s.optimizerNames.type = obj.optimizerType;
+
+
+
+            sm.showOptParams         = false;
+            sm.refreshInterval       = [];
+            sm.problemID             = [];
+            sm.costFuncNames         = [];
+            sm.costWeights           = [];
+            sm.constraintFuncs       = [];
+            sm.optimizerNames        = [];
+
+            sm.shallDisplayDesignVar = false;
+            sm.shallShowBoundaryConditions = [];
+            sm.boundaryConditions = [];
+            sm.designVariable = obj.designVariable;
+            sm.optimizerNames = [];
+            sm.dim = [];
+            sm.scale = [];
+            sm.mesh = [];
+
+             s.monitoringDockerSettings = sm;
+
+             sp.shallPrint = false;
+             s.postProcessSettings = sp;
+
              obj.optimizer = Optimizer.create(s);    
              obj.optimizer.solveProblem();
 
@@ -188,7 +217,7 @@ classdef IterativeProcessComputer < handle
 
             obj.constraint.computeFunctionAndGradient(); 
             fval = obj.constraint.value;
-            dfdx = obj.constraint.gradient;
+            dfdx = obj.constraint.gradient';
             dfdx2 = 0;            
             
             obj.cost.computeFunctionAndGradient(); 
@@ -219,7 +248,7 @@ classdef IterativeProcessComputer < handle
             s.length = obj.length;
             s.youngModulus = obj.youngModulus;
             s.inertiaMoment = obj.inertiaMoment; 
-            s.nConstraints = obj.nConstraints;
+            s.nConstraints = obj.nConstraints;            
             obj.constraint = Constraint(s);
             obj.constraint.computeFunctionAndGradient();
         end
