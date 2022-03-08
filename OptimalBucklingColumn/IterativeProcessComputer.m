@@ -86,61 +86,60 @@ classdef IterativeProcessComputer < handle
          function obj = computeIterativeProcess(obj)
 
 % Refactor Constraint
-% Construct Optimizer;
-%              s.designVar = obj.designVariable;
-%              s.type     = obj.optimizerType;
-%              s.constraintCase = 'INEQUALIY';
-%              s.cost = obj.cost;
-%              s.constraint = obj.constraint;
-%              s.dualVariable.value = zeros(1,obj.nConstraints); 
-%              s.maxIter = obj.maxIter;
-%              s.incrementalScheme.iStep = 1;
-%              s.incrementalScheme.nSteps = 1;
-%              s.targetParameters.optimality_tol = 0.0005;
-%              s.historyPrinterSettings = [];
-%              s.uncOptimizerSettings.ub = 10;
-%              s.uncOptimizerSettings.lb = 0.25;
-%              s.historyPrinterSettings.shallPrint = obj.optimizerType;
-%              s.historyPrinterSettings.fileName = 'OptimalBuckling';
-%              s.optimizerNames.type = obj.optimizerType;
-% 
-% 
-%             sm.showOptParams         = false;
-%             sm.refreshInterval       = [];
-%             sm.problemID             = [];
-%             sm.costFuncNames         = [];
-%             sm.costWeights           = [];
-%             sm.constraintFuncs       = [];
-%             sm.optimizerNames        = [];
-% 
-%             sm.shallDisplayDesignVar = false;
-%             sm.shallShowBoundaryConditions = [];
-%             sm.boundaryConditions = [];
-%             sm.designVariable = obj.designVariable;
-%             sm.optimizerNames = [];
-%             sm.dim = [];
-%             sm.scale = [];
-%             sm.mesh = [];
-% 
-%              s.monitoringDockerSettings = sm;
-% 
-%              sp.shallPrint = false;
-%              s.postProcessSettings = sp;
-% 
-%              obj.optimizer = Optimizer.create(s);    
-%              obj.optimizer.solveProblem();
+%Construct Optimizer;
+             s.designVar = obj.designVariable;
+             s.type     = obj.optimizerType;
+             s.constraintCase = 'INEQUALIY';
+             s.cost = obj.cost;
+             s.constraint = obj.constraint;
+             s.dualVariable.value = zeros(1,obj.nConstraints); 
+             s.maxIter = obj.maxIter;
+             s.incrementalScheme.iStep = 1;
+             s.incrementalScheme.nSteps = 1;
+             s.targetParameters.optimality_tol = 0.0005;
+             s.historyPrinterSettings = [];
+             s.uncOptimizerSettings.ub = 10;
+             s.uncOptimizerSettings.lb = 0.25;
+             s.historyPrinterSettings.shallPrint = false;
+             s.historyPrinterSettings.fileName = 'OptimalBuckling';
+             s.optimizerNames.type = obj.optimizerType;
 
-             obj.change = 1;
-             obj.hasFinished = 0;
-             while ~obj.hasFinished
-                obj.increaseIter();
-               % obj.update();
-                obj.updateStatus();
-                obj.computeNewDesign();
-                obj.updateOutput();
-                obj.displayIteration()
-                obj.plotFigures();
-            end
+
+            sm.showOptParams         = true;
+            sm.refreshInterval       = 1;
+            sm.problemID             = [];
+            sm.costFuncNames         = [];
+            sm.costWeights           = [];
+            sm.constraintFuncs       = [];
+
+            sm.shallDisplayDesignVar = false;
+            sm.shallShowBoundaryConditions = [];
+            sm.boundaryConditions = [];
+            sm.designVariable = obj.designVariable;
+            sm.optimizerNames.type = obj.optimizerType;
+            sm.dim = [];
+            sm.scale = [];
+            sm.mesh = [];
+
+             s.monitoringDockerSettings = sm;
+
+             sp.shallPrint = false;
+             s.postProcessSettings = sp;
+
+             obj.optimizer = Optimizer.create(s);    
+             obj.optimizer.solveProblem();
+% 
+%              obj.change = 1;
+%              obj.hasFinished = 0;
+%              while ~obj.hasFinished
+%                 obj.increaseIter();
+%                % obj.update();
+%                 obj.updateStatus();
+%                 obj.computeNewDesign();
+%                 obj.updateOutput();
+%                 obj.displayIteration()
+%                 obj.plotFigures();
+%             end
 
          end
 
