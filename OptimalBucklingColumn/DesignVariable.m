@@ -9,10 +9,6 @@ classdef DesignVariable < handle
         
     end
     
-    properties (Access = private)
-        
-    end
-    
     methods (Access = public)
         
         function obj = DesignVariable()

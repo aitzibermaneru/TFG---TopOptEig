@@ -30,19 +30,22 @@ classdef EulerBeamOptimizer < handle
             obj.computeIterativeProcess()
         end
 
-%0. project chapter
-        
-%1.plot in EigModes and make D,V,mode1,mode2,lambda private in EigModes (not
-%to be definided in constriant
- %obj.eigenValueModes.plot();
+    end
 
-%2. delete constraintDerivative class
+%% TO DO LIST
+
+% 0. project chapter  (DONE)
+        
+% 1.plot in EigModes and make D,V,mode1,mode2,lambda private in EigModes (not to be definided in constriant
+    % obj.eigenValueModes.plot();  (DONE)
+
+% 2. delete constraintDerivative class   (DONE)
 
 % 3. Use Optimizer_MMA with monitoring
 
-%4. plotBeam in 3D
+% 4. plotBeam in 3D
 
-    end
+%%
     
     methods (Access = private)
         
