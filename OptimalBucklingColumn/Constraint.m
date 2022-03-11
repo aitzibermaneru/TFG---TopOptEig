@@ -3,7 +3,6 @@ classdef Constraint < handle
     properties (GetAccess = public, SetAccess = private)
         gradient
         value
-        % D -- (para display iteration en iterative)
     end
 
     properties (Access = private) % classes
@@ -46,8 +45,8 @@ classdef Constraint < handle
         function computeFunctionAndGradient(obj,iter)
             obj.computeBendingMatrix();
             obj.computeEigModes(iter);           
-            obj.computeConstraintFunction();
-            obj.computeConstraintDerivative();
+            obj.computeFunctions();
+            obj.computeGradients();
         end
 
         function plotModes(obj)
@@ -112,7 +111,7 @@ classdef Constraint < handle
             obj.v2     = obj.eigModes.v2;
         end
 
-        function fx = computeConstraintFunction(obj)
+        function fx = computeFunctions(obj)
             x = obj.designVariable.value;
             l = obj.lambda;
             N = obj.nElem;
@@ -120,7 +119,7 @@ classdef Constraint < handle
             obj.value = fx;
         end
 
-        function [dfdx, dfdx2] = computeConstraintDerivative(obj)
+        function [dfdx, dfdx2] = computeGradients(obj)
                 Belem = obj.elementalBendingMatrix;
                 x = obj.designVariable.value;
                 N = obj.nElem;

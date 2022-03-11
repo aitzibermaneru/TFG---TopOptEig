@@ -34,14 +34,13 @@ classdef EulerBeamOptimizer < handle
 
 %% TO DO LIST
 % 0. create eigenModes in Iterative;??
-% 1. Cost to FirstEigenValueFuncitonal (shapeFunctional)
-% 2. Cost is composed of FirstEigenValue
-% 3. constraint to 3 shapeFunctionals 
-% 4. constraint is composed of 3 shapeFunctionals
+% 1. Cost to FirstEigenValueFuncitonal (shapeFunctional)   (DONE)
+% 2. Cost is composed of FirstEigenValue  (DONE)
+% 3. constraint to 3 shapeFunctionals (DONE)
+% 4. constraint is composed of 3 shapeFunctionals  ()
 % 3. Use Optimizer_MMA with monitoring
 
 % 4. plotBeam in 3D
-
 %%
     
     methods (Access = private)
