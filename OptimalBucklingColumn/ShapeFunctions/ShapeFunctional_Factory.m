@@ -1,6 +1,5 @@
 classdef ShapeFunctional_Factory < handle
 
-    
     properties (Access = private)
         designVariable
     end

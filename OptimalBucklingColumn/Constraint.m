@@ -10,7 +10,6 @@ classdef Constraint < handle
         bendingMat
         stiffnessMat
         eigModes
-        constraintDeriv
     end
     
     properties (Access = private) % computed
@@ -34,17 +33,15 @@ classdef Constraint < handle
     end
     
     methods (Access = public)
-        
+
         function obj = Constraint(cParams)
             obj.init(cParams)
-            obj.createStiffnessMatrix();   
-            obj.createBendingMatrix();
-            obj.createEigModes();
         end
         
         function computeFunctionAndGradient(obj,iter)
-            obj.computeBendingMatrix();
-            obj.computeEigModes(iter);           
+             obj.computeStiffnessMatrix();
+             obj.computeBendingMatrix();
+             obj.computeEigModes(iter);           
             obj.computeFunctions();
             obj.computeGradients();
         end
@@ -57,7 +54,7 @@ classdef Constraint < handle
     end
     
     methods (Access = private)
-        
+
         function init(obj,cParams)
             obj.designVariable = cParams.designVariable;
             obj.nElem          = cParams.nElem;
@@ -66,39 +63,21 @@ classdef Constraint < handle
             obj.youngModulus   = cParams.youngModulus;
             obj.inertiaMoment  = cParams.inertiaMoment;   
             obj.nConstraints   = cParams.nConstraints;
+            obj.bendingMat     = cParams.settings.bendingMat;
+            obj.stiffnessMat   = cParams.settings.stiffnessMat;
+            obj.eigModes       = cParams.settings.eigMod;
         end
 
-        function createStiffnessMatrix(obj)
-            s.nElem          = obj.nElem;
-            s.length         = obj.length;
-            s.youngModulus   = obj.youngModulus;
-            s.inertiaMoment  = obj.inertiaMoment;
-            obj.stiffnessMat = StiffnessMatrixComputer(s);
+        function computeStiffnessMatrix(obj)
             obj.stiffnessMat.compute();
-            obj.stiffnessMatrix = obj.stiffnessMat.stiffnessMatrix;
-        end
-
-        function createBendingMatrix(obj)
-            s.nElem          = obj.nElem;
-            s.length         = obj.length;
-            s.youngModulus   = obj.youngModulus;
-            s.inertiaMoment  = obj.inertiaMoment;
-            s.designVariable = obj.designVariable;
-            obj.bendingMat = BendingMatrixComputer(s);
-        end 
-
-        function createEigModes(obj)
-            s.freeNodes  = obj.freeNodes;
-            s.nElem      = obj.nElem;
-            s.length     = obj.length;
-            obj.eigModes = EigModes(s);
+            obj.stiffnessMatrix =  obj.stiffnessMat.stiffnessMatrix;
         end
 
         function computeBendingMatrix(obj)
-           obj.bendingMat.compute();
-           obj.bendingMatrix =  obj.bendingMat.bendingMatrix;
-           obj.elementalBendingMatrix = obj.bendingMat.elementalBendingMatrix;
-        end 
+            obj.bendingMat.compute();
+            obj.bendingMatrix =  obj.bendingMat.bendingMatrix;
+            obj.elementalBendingMatrix = obj.bendingMat.elementalBendingMatrix;
+        end
 
         function computeEigModes(obj,iter)
             K = obj.stiffnessMatrix;
@@ -111,7 +90,7 @@ classdef Constraint < handle
             obj.v2     = obj.eigModes.v2;
         end
 
-        function fx = computeFunctions(obj)
+        function fx = computeFunctions(obj) 
             x = obj.designVariable.value;
             l = obj.lambda;
             N = obj.nElem;

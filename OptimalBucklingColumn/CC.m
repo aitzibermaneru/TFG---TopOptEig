@@ -35,6 +35,7 @@ classdef CC < handle
             for iS = 1:nS
                 s.designVariable = cParams.designVariable; 
                 s.type = cParams.type{iS};
+                s.settings = cParams.settings;
                 s.nElem = obj.nElem;
                 shapeFunction = ShapeFunctional.create(s);
                 obj.append(shapeFunction);
@@ -44,17 +45,17 @@ classdef CC < handle
 
     methods (Access = public)
 
-        function computeFunctions(obj)
+        function computeFunctions(obj,settings)
         %    obj.initValueAndGradient();
             for iSF = 1:length(obj.shapeFunctions)
-                obj.shapeFunctions{iSF}.computeFunction();
-                obj.value(iSF) = obj.shapeFunctions{iSF}.value;
+                obj.shapeFunctions{iSF}.computeFunction(settings);
+                obj.value(iSF,1) = obj.shapeFunctions{iSF}.value;
             end
         end    
 
-        function computeGradients(obj)
+        function computeGradients(obj,settings)
             for iSF = 1:length(obj.shapeFunctions)
-                obj.shapeFunctions{iSF}.computeGradient();
+                obj.shapeFunctions{iSF}.computeGradient(settings);
                 obj.gradient(:,iSF) = obj.shapeFunctions{iSF}.gradient;
             end
         end

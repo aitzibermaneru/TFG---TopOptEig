@@ -10,6 +10,10 @@ classdef IterativeProcessComputer < handle
          optimizer
          cost
          constraint
+         settings
+         eigMod
+         stiffnessMat
+         bendingMat
          dual
      end
     
@@ -56,6 +60,9 @@ classdef IterativeProcessComputer < handle
             obj.init(cParams);
             obj.computeBoundaryConditions();            
             obj.createCost();
+            obj.createStiffnessMatrix();
+            obj.createBendingMatrix();
+            obj.createEigModes();
             obj.createConstraint();
             % obj.createDualVariable();
         end
@@ -205,7 +212,7 @@ classdef IterativeProcessComputer < handle
             dfdx = obj.constraint.gradient';
             dfdx2 = 0;            
             
-            obj.cost.computeFunctionAndGradient(); 
+            obj.cost.computeFunctionAndGradient(iter); 
             f0val = obj.cost.value;
             df0dx = obj.cost.gradient;
             df0dx2 = 0;
@@ -225,7 +232,33 @@ classdef IterativeProcessComputer < handle
             s.designVariable = obj.designVariable;
             s.nShapeFunction = 1;
             s.type{1} = 'firstEignValue_functional';
+            s.settings = [];
             obj.cost = Cost(s);
+        end
+        function createStiffnessMatrix(obj)
+            s.nElem          = obj.nElem;
+            s.length         = obj.length;
+            s.youngModulus   = obj.youngModulus;
+            s.inertiaMoment  = obj.inertiaMoment;
+            obj.settings.stiffnessMat = StiffnessMatrixComputer(s);
+          %  obj.stiffnessMat.compute();
+           % obj.stiffnessMatrix = obj.stiffnessMat.stiffnessMatrix;
+        end
+
+        function createBendingMatrix(obj)
+            s.nElem          = obj.nElem;
+            s.length         = obj.length;
+            s.youngModulus   = obj.youngModulus;
+            s.inertiaMoment  = obj.inertiaMoment;
+            s.designVariable = obj.designVariable;
+            obj.settings.bendingMat = BendingMatrixComputer(s);
+        end
+
+        function createEigModes(obj)
+            s.freeNodes  = obj.freeNodes;
+            s.nElem      = obj.nElem;
+            s.length     = obj.length;
+            obj.settings.eigMod = EigModes(s);
         end
 
         function createConstraint(obj)
@@ -236,10 +269,15 @@ classdef IterativeProcessComputer < handle
             s.youngModulus = obj.youngModulus;
             s.inertiaMoment = obj.inertiaMoment; 
             s.nConstraints = obj.nConstraints;
-%             s.type{1} = 'doubleEig1';
-%             s.type{2} = 'doubleEig2';
-%             s.type{3} = 'volume';
-            obj.constraint = Constraint(s);
+            s.settings = obj.settings;
+%             s.eigMod = obj.eigMod;
+%             s.stiffnessMat = obj.stiffnessMat;
+%             s.bendingMat   = obj.bendingMat;
+            s.type{1} = 'doubleEig1';
+            s.type{2} = 'doubleEig2';
+            s.type{3} = 'volume';
+            s.nShapeFunction = 3;
+            obj.constraint = Constraint2(s);
         end
 
         function displayIteration(obj)
@@ -254,7 +292,8 @@ classdef IterativeProcessComputer < handle
         end
 
         function plot(obj)
-            obj.constraint.plotModes();
+            x = obj.designVariable.value;
+            obj.settings.eigMod.plot(x);
         end                            
            
     end

@@ -3,10 +3,20 @@ classdef Sh_doubleFirstEig < ShapeFunctional
     properties (Access = private)
         nElem
         designVariable
+        stiffnessMatrix
+        bendingMatrix
+        elementalBendingMatrix
+        D
+        V
+        v1
+        v2
+        lambda
     end
     
     properties (Access = private)
-        
+        eigModes
+        bendingMat
+        stiffnessMat
     end   
     
     methods (Access = public)
@@ -15,8 +25,8 @@ classdef Sh_doubleFirstEig < ShapeFunctional
             obj.init(cParams)
         end
 
-        function computeFunctionAndGradient(obj)
-            obj.computeFunction();
+        function computeFunctionAndGradient(obj,iter)
+            obj.computeFunction(iter);
             obj.computeGradient();
         end
         
@@ -27,15 +37,49 @@ classdef Sh_doubleFirstEig < ShapeFunctional
         function init(obj,cParams)
             obj.nElem = cParams.nElem;
             obj.designVariable = cParams.designVariable;
+            obj.eigModes = cParams.settings.eigMod;
+            obj.bendingMat = cParams.settings.bendingMat;
+            obj.stiffnessMat = cParams.settings.stiffnessMat;
+
         end
 
-        function computeFunction(obj)
+    end
+
+    methods (Access = public)
+
+        function computeFunction(obj,iter)
+            [l] = obj.computeSettings(iter);
+            x = obj.designVariable.value;
+            N = obj.nElem;
             fx = x(N+1)-l(1);
             obj.value = fx;
         end
 
-        function computeGradient(obj)
+        function [l] = computeSettings(obj,iter)
+            obj.stiffnessMat.compute();
+            obj.stiffnessMatrix = obj.stiffnessMat.stiffnessMatrix;
+            obj.bendingMat.compute();
+            obj.elementalBendingMatrix = obj.bendingMat.elementalBendingMatrix;
+            obj.bendingMatrix = obj.bendingMat.bendingMatrix;
+            K = obj.stiffnessMatrix;
+            B = obj.bendingMatrix;
+            
+            obj.eigModes.compute(K,B,iter);
+            obj.lambda = obj.eigModes.lambda;
+            obj.D      = obj.eigModes.D;
+            obj.V      = obj.eigModes.V;
+            obj.v1     = obj.eigModes.v1;
+            obj.v2     = obj.eigModes.v2;
+            obj.eigModes.compute(K,B,iter);
+            l = obj.eigModes.lambda;
+        end
+
+        function computeGradient(obj,iter)
+            Belem = obj.elementalBendingMatrix;
+            x = obj.designVariable.value;
+            N = obj.nElem;
             if abs(obj.D(2,2)-obj.D(1,1))> 1
+                W = zeros(2*N+2,2);
                 for i=3:2*N
                     W(i,1)=obj.v1(i-2);
                 end
@@ -44,17 +88,10 @@ classdef Sh_doubleFirstEig < ShapeFunctional
                 end
             else
                 disp('dobles')
-                Q1=zeros(2*N+2,1);
-                Q2=zeros(2*N+2,1);
-                dQ1=zeros(N,1);
-                dQ2=zeros(N,1);
-                dQ1Q2=zeros(N,1);
                 obj.D
                     disp('dobles')
-                    Q1=zeros(2*N+2,1);
-                    Q2=zeros(2*N+2,1);
-                    dQ1=zeros(N,1);
-                    dQ2=zeros(N,1);
+                    Q1=zeros(2*N+2,1);   Q2=zeros(2*N+2,1);
+                    dQ1=zeros(N,1);      dQ2=zeros(N,1);
                     dQ1Q2=zeros(N,1);
                     for i=3:2*N
                         Q1(i,1)=obj.V(i-2,1);
@@ -69,9 +106,9 @@ classdef Sh_doubleFirstEig < ShapeFunctional
                         A=[dQ1(i,1) dQ1Q2(i,1); dQ1Q2(i,1) dQ2(i,1)];
                         [U,R]=eigs(A,2,'SM');
                         S=sort(diag(R));
-                        dfdx(1,i)=-S(2);
+                        dfdx(1,i)=-S(1);
                     end
-                end  
+             end  
                 dfdx(1,N+1)=1;
                 obj.gradient = dfdx';
         end

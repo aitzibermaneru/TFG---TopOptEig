@@ -11,9 +11,9 @@ classdef Cost < CC
             obj.init(cParams)
         end
         
-        function computeFunctionAndGradient(obj)
-            obj.computeFunctions();
-            obj.computeGradients();
+        function computeFunctionAndGradient(obj,settings)
+            obj.computeFunctions(settings);
+            obj.computeGradients(settings);
         end
 
     end

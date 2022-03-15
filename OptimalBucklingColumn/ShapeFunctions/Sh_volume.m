@@ -5,7 +5,8 @@ classdef Sh_volume < ShapeFunctional
     end
     
     properties (Access = private)
-        
+        nElem
+        designVariable
     end
     
     methods (Access = public)
@@ -14,9 +15,9 @@ classdef Sh_volume < ShapeFunctional
             obj.init(cParams)
 
         end
-        function computeFunctionAndGradient(obj)
-            obj.computeFunction();
-            obj.computeGradient();
+        function computeFunctionAndGradient(obj,iter)
+            obj.computeFunction(iter);
+            obj.computeGradient(iter);
         end
 
     end
@@ -24,16 +25,25 @@ classdef Sh_volume < ShapeFunctional
     methods (Access = private)
         
         function init(obj,cParams)
-            
+            obj.nElem = cParams.nElem;
+            obj.designVariable = cParams.designVariable;
         end
 
-        function computeFunction(obj)
+    end
+
+    methods (Access = public)
+
+        function computeFunction(obj,iter)
+            x = obj.designVariable.value;
+            N = obj.nElem;
             fx = (1/N)*sum(x(1:N))-1;
             obj.value = fx;
         end
 
-        function computeGradient(obj)
-            dfdx(3,1:N)=(1/N)*ones(1,N);
+        function computeGradient(obj,iter)
+            N = obj.nElem;
+            dfdx = zeros(1,N+1);
+            dfdx(1,1:N)=(1/N)*ones(1,N);
             obj.gradient = dfdx;
         end
 
