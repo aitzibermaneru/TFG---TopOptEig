@@ -19,26 +19,24 @@ classdef EulerBeamOptimizer < handle
     properties (Access = private)
         designVariable
         nIter
-        mmaParams
+        mmaVarComputer
     end
      
     methods (Access = public)
         
         function obj = EulerBeamOptimizer()
             obj.init()
-            obj.computeVariablesMMA()
+            obj.createDesignVariable();
+            obj.createMMA();
             obj.computeIterativeProcess()
         end
 
     end
 
 %% TO DO LIST
-% 0. create eigenModes in Iterative; (DONE)
-% 1. Cost to FirstEigenValueFuncitonal (shapeFunctional)   (DONE)
-% 2. Cost is composed of FirstEigenValue  (DONE)
-% 3. constraint to 3 shapeFunctionals (DONE)
-% 4. constraint is composed of 3 shapeFunctionals ()
-% 3. Use Optimizer_MMA with monitoring
+% eigenModes have stifness and bending inside
+%eigenModes prvoide first and second eignvalue derivate (Sh_doubleFirst and
+%second)
 
 % 4. plotBeam in 3D
 %%
@@ -58,7 +56,15 @@ classdef EulerBeamOptimizer < handle
             obj.maxIter       = 1000;
         end
 
-        function obj = computeVariablesMMA(obj)
+        function createDesignVariable(obj)
+            N = obj.nElem;
+            x = ones(N+1,1);            
+            des = DesignVariable();
+            des.update(x);
+            obj.designVariable = des;  
+         end
+
+        function obj = createMMA(obj)
             s.nElem         = obj.nElem;
             s.nConstraints  = obj.nConstraints; 
             s.length        = obj.length;
@@ -67,28 +73,14 @@ classdef EulerBeamOptimizer < handle
             s.minThick      = obj.minThick;
             s.maxThick      = obj.maxThick;
             s.nValues       = obj.nValues;
-            solution = MMAVariablesComputer(s);
-            solution.compute();
-            obj.designVariable = solution.designVariable;
-            obj.mmaParams = obj.createMMAparams(solution);
+            s.x0            = obj.designVariable.value;
+            mmaVarComp = MMAVariablesComputer(s);
+            obj.mmaVarComputer = mmaVarComp;
         end
 
-        function cParams = createMMAparams(obj,s)
-            cParams.xMin    = s.xmin;
-            cParams.xMax    = s.xmax;
-            cParams.xOld1   = s.xold1;
-            cParams.xOld2   = s.xold2;
-            obj.nIter       = s.loop;
-            cParams.uPP     = s.upp;
-            cParams.lOW     = s.low;
-            cParams.aMMA    = s.a_mma;
-            cParams.a0Val   = s.a0;
-            cParams.dVal    = s.d;
-            cParams.cVal    = s.c;
-        end
 
         function obj = computeIterativeProcess(obj)
-            s.mmaParams      = obj.mmaParams;
+            s.mmaVarComputer = obj.mmaVarComputer;
             s.nElem          = obj.nElem;
             s.nConstraints   = obj.nConstraints; 
             s.length         = obj.length;
@@ -97,10 +89,9 @@ classdef EulerBeamOptimizer < handle
             s.inertiaMoment  = obj.inertiaMoment;
             s.minThick       = obj.minThick;
             s.maxThick       = obj.maxThick;
-            s.loop           = obj.nIter;
-            s.designVariable = obj.designVariable;
             s.maxIter        = obj.maxIter;
             s.optimizerType  = obj.optimizerType;
+            s.designVariable = obj.designVariable;
             solution = IterativeProcessComputer(s);
             solution.compute();
             obj.designVariable = solution.designVariable;
