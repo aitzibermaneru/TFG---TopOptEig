@@ -34,11 +34,12 @@ classdef EulerBeamOptimizer < handle
     end
 
 %% TO DO LIST
-% eigenModes have stifness and bending inside
-%eigenModes prvoide first and second eignvalue derivate (Sh_doubleFirst and
-%second)
 
-% 4. plotBeam in 3D
+% eigenModes have stifness and bending inside  (DONE)
+% eigenModes prvoide first and second eignvalue derivate (Sh_doubleFirst
+% and second)  (DONE)
+
+% 4. plotBeam in 3D 
 %%
     
     methods (Access = private)
@@ -47,7 +48,7 @@ classdef EulerBeamOptimizer < handle
             obj.nElem         = 10;
             obj.nConstraints  = 3; 
             obj.length        = 1/obj.nElem; 
-            obj.nValues       = obj.nElem +1;
+            obj.nValues       = obj.nElem+1;
             obj.youngModulus  = 1;
             obj.inertiaMoment = 1;  
             obj.minThick      = 0.25;

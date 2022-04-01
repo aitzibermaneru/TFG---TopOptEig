@@ -10,12 +10,6 @@ classdef IterativeProcessComputer < handle
          optimizer
          cost
          constraint
-         settings
-         eigMod
-         %stiffnessMat
-         %bendingMat
-         dual
-
          stiffnessMatComputer
          bendingMatComputer
          eigenModes
@@ -64,11 +58,8 @@ classdef IterativeProcessComputer < handle
             obj.init(cParams);
             obj.computeBoundaryConditions();            
             obj.createCost();
-            obj.createStiffnessMatrix();
-            obj.createBendingMatrix();
             obj.createEigModes();
             obj.createConstraint();
-            % obj.createDualVariable();
         end
 
         function compute(obj)
@@ -98,7 +89,7 @@ classdef IterativeProcessComputer < handle
 
          function obj = computeIterativeProcess(obj)
 % Refactor Constraint
-%Construct Optimizer;
+% Construct Optimizer;
 %              s.designVar = obj.designVariable;
 %              s.type     = obj.optimizerType;
 %              s.constraintCase = 'INEQUALIY';
@@ -153,12 +144,6 @@ classdef IterativeProcessComputer < handle
 
          end
 
-%          function createDualVariable(obj)
-%             s.nConstraints = obj.nConstraints;
-%             s.mmaVarComputer.xOld2 = obj.mmaVarComputer.xOld2;
-%             obj.dual = DualVariable(s);
-%          end
-
         function increaseIter(obj)
             obj.nIter = obj.nIter+1;
         end
@@ -167,21 +152,7 @@ classdef IterativeProcessComputer < handle
             obj.hasFinished = (obj.change <= 0.0005) || (obj.nIter >= obj.maxIter);
         end
 
-
-        function plotFigures(obj)
-            N = obj.nElem;
-            iter = obj.nIter;
-            x = obj.designVariable.value;
-            obj.costHistory(iter) = obj.cost.value;
-            obj.vol(iter) = (1/N)*sum(x(1:N));
-            obj.plot()
-            figure(3)
-            plot(obj.costHistory)
-            figure(4)
-            plot(obj.vol)
-        end
-
-       function  computeBoundaryConditions(obj)
+        function computeBoundaryConditions(obj)
             N = obj.nElem;
             fixnodes = union([1,2], [2*N+1,2*N+2]);
             nodes = 1:2*N+2;
@@ -190,7 +161,6 @@ classdef IterativeProcessComputer < handle
         end
 
         function computeNewDesign(obj)
-
             iter = obj.nIter;
             x = obj.designVariable.value;
             xval = x;
@@ -211,10 +181,8 @@ classdef IterativeProcessComputer < handle
 
             obj.xVal = xval;
             obj.xMMA = xmma;
-
   
             obj.designVariable.update(obj.xMMA);
-
             obj.change = max(abs(obj.designVariable.value-xval));            
         end
 
@@ -226,28 +194,14 @@ classdef IterativeProcessComputer < handle
             s.settings = [];
             obj.cost = Cost(s);
         end
-        function createStiffnessMatrix(obj)
-            s.nElem          = obj.nElem;
-            s.length         = obj.length;
-            s.youngModulus   = obj.youngModulus;
-            s.inertiaMoment  = obj.inertiaMoment;
-            obj.stiffnessMatComputer = StiffnessMatrixComputer(s);
-
-        end
-
-        function createBendingMatrix(obj)
-            s.nElem          = obj.nElem;
-            s.length         = obj.length;
-            s.youngModulus   = obj.youngModulus;
-            s.inertiaMoment  = obj.inertiaMoment;
-            s.designVariable = obj.designVariable;
-            obj.bendingMatComputer = BendingMatrixComputer(s);
-        end
 
         function createEigModes(obj)
             s.freeNodes  = obj.freeNodes;
             s.nElem      = obj.nElem;
             s.length     = obj.length;
+            s.youngModulus   = obj.youngModulus;
+            s.inertiaMoment  = obj.inertiaMoment;
+            s.designVariable = obj.designVariable;
             obj.eigenModes = EigModes(s);
         end
 
@@ -262,7 +216,6 @@ classdef IterativeProcessComputer < handle
             s.settings.eigMod = obj.eigenModes;
             s.settings.bendingMat = obj.bendingMatComputer;
             s.settings.stiffnessMat = obj.stiffnessMatComputer;
-
             s.type{1} = 'doubleEig1';
             s.type{2} = 'doubleEig2';
             s.type{3} = 'volume';
@@ -279,6 +232,19 @@ classdef IterativeProcessComputer < handle
                 ' Vol.: ' sprintf('%6.3f',  (1/N)*(sum(x)-x(N+1))  ) ...
                 ' ch.: ' sprintf('%6.3f',''  )])
             %(obj.constraint.D(2,2)-obj.constraint.D(1,1))
+        end
+
+        function plotFigures(obj)
+            N = obj.nElem;
+            iter = obj.nIter;
+            x = obj.designVariable.value;
+            obj.costHistory(iter) = obj.cost.value;
+            obj.vol(iter) = (1/N)*sum(x(1:N));
+            obj.plot()
+            figure(3)
+            plot(obj.costHistory)
+            figure(4)
+            plot(obj.vol)
         end
 
         function plot(obj)

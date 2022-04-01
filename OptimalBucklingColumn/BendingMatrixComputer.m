@@ -13,10 +13,6 @@ classdef BendingMatrixComputer < handle
         designVariable
     end
     
-    properties (Access = private)
-        
-    end
-    
     methods (Access = public)
         
         function obj = BendingMatrixComputer(cParams)

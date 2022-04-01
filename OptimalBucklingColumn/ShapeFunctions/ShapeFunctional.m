@@ -14,8 +14,4 @@ classdef ShapeFunctional < handle
         
     end
     
-    methods (Access = private)
-        
-    end
-    
 end

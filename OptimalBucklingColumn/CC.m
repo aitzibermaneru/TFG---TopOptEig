@@ -31,7 +31,7 @@ classdef CC < handle
     methods (Access = protected)
 
         function createShapeFunctions(obj,cParams)
-            nS = cParams.nShapeFunction; % cost 1, constraint 3
+            nS = cParams.nShapeFunction; 
             for iS = 1:nS
                 s.designVariable = cParams.designVariable; 
                 s.type = cParams.type{iS};

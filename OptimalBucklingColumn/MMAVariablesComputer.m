@@ -1,8 +1,4 @@
 classdef MMAVariablesComputer < handle
-    
-    properties (Access = public)
-
-    end
 
     properties (Access = private)
         designVariable
@@ -36,8 +32,6 @@ classdef MMAVariablesComputer < handle
             obj.init(cParams)
             obj.computeInitialVariablesMMA();
         end
-        
-
 
         function xmma = compute(obj,nValues,nConstraints,iter,xval,f0val,df0dx,df0dx2,fval,dfdx,dfdx2)
             n_val = nValues;
@@ -62,7 +56,6 @@ classdef MMAVariablesComputer < handle
             obj.xOld2 = obj.xOld1;
             obj.xOld1 = xval;            
         end
-
         
     end
     
@@ -98,10 +91,9 @@ classdef MMAVariablesComputer < handle
             obj.a0Val = 1;
             obj.aMMA = zeros(m,1);
             obj.dVal = zeros(m,1);
-            obj.cVal = 1000*ones(m,1);          
+            obj.cVal = 1000*ones(m,1);        
         end        
-  
-        
+
     end
     
 end
