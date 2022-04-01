@@ -23,17 +23,6 @@ classdef Sh_doubleFirstEig < ShapeFunctional
         
     end
     
-    methods (Access = private)
-        
-        function init(obj,cParams)
-            obj.nElem = cParams.nElem;
-            obj.designVariable = cParams.designVariable;
-            obj.eigModes = cParams.settings.eigMod;
-            obj.eigNum = 1;
-        end
-
-    end
-
     methods (Access = public)
 
         function computeFunction(obj,iter)
@@ -49,5 +38,18 @@ classdef Sh_doubleFirstEig < ShapeFunctional
         end
 
     end
+
+    methods (Access = private)
+        
+        function init(obj,cParams)
+            obj.nElem = cParams.nElem;
+            obj.designVariable = cParams.designVariable;
+            obj.eigModes = cParams.settings.eigMod;
+            obj.eigNum = 1;
+        end
+
+  
+
+    end    
     
 end

@@ -205,6 +205,8 @@ classdef IterativeProcessComputer < handle
             obj.eigenModes = EigModes(s);
         end
 
+        
+
         function createConstraint(obj)
             s.designVariable = obj.designVariable;
             s.nElem = obj.nElem;

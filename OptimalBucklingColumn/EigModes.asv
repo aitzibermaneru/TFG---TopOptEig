@@ -48,7 +48,7 @@ classdef EigModes < handle
             x = obj.designVariable.value;
             N = obj.nElem;
             fx = x(N+1)-obj.lambda(eigNum);
-            obj.computeConvergence2Eigenvalues(iter);                                                
+            obj.computeConvergence2Eigenvalues(iter);                        
         end
 
         function grad = provideDerivative(obj,iter,eigNum)
@@ -134,6 +134,12 @@ classdef EigModes < handle
             s.designVariable = obj.designVariable;
             obj.bendingMatComputer = BendingMatrixComputer(s);
         end
+
+        function createConvengeceParam(obj,nIter)
+            obj.e  = zeros(nIter);
+            obj.E1 = zeros(nIter);
+            obj.E2 = zeros(nIter);
+        end
         
         function computeEigenModesAndValues(obj) 
             obj.stiffnessMatComputer.compute();
@@ -173,15 +179,7 @@ classdef EigModes < handle
             obj.e(iter)  = iter;
             obj.E1(iter) = obj.D(1,1);
             obj.E2(iter) = obj.D(2,2);
-        end   
-
-        function createConvengeceParam(obj,nIter)
-            obj.e  = zeros(nIter);
-            obj.E1 = zeros(nIter);
-            obj.E2 = zeros(nIter);
-        end              
-
-
+        end
 
     end
     

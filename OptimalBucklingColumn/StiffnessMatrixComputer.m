@@ -1,11 +1,11 @@
 classdef StiffnessMatrixComputer < handle
     
-    properties (Access = public)
-        elementalStiffnessMatrix
+    properties (Access = public)       
         stiffnessMatrix
     end
     
     properties (Access = private)
+        elementalStiffnessMatrix
         nElem
         length
         youngModulus
